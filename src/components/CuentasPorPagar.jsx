@@ -12,6 +12,27 @@ const CuentasPorPagar = () => {
       minimumFractionDigits: 0,
     }).format(valor || 0);
 
+  // Función segura para parsear fechas y evitar el bug de MM/DD vs DD/MM
+  const parseFechaSegura = (fechaStr) => {
+    if (!fechaStr) return new Date();
+    if (fechaStr.includes('-')) return new Date(fechaStr + 'T00:00:00');
+    if (fechaStr.includes('/')) {
+      const partes = fechaStr.split('/');
+      let mes = parseInt(partes[0]);
+      let dia = parseInt(partes[1]);
+      const anio = parseInt(partes[2]);
+      
+      // Si el primer número es > 12, seguro es el día (Formato DD/MM)
+      if (mes > 12) {
+        dia = parseInt(partes[0]);
+        mes = parseInt(partes[1]);
+      }
+      // Por defecto asumimos MM/DD/YYYY para corregir el bug donde 9/12/2026 se iba a Diciembre
+      return new Date(anio, mes - 1, dia);
+    }
+    return new Date(fechaStr);
+  };
+
   // Calcular y filtrar órdenes
   const radarCxP = useMemo(() => {
     const ahora = new Date();
@@ -30,7 +51,7 @@ const CuentasPorPagar = () => {
         const diasMatch = o.proveedor?.formaPago?.match(/\d+/);
         const diasPlazo = diasMatch ? parseInt(diasMatch[0]) : 30; // Por defecto 30 si falla
         
-        const fechaEmision = new Date(o.fecha);
+        const fechaEmision = parseFechaSegura(o.fecha);
         fechaEmision.setHours(0, 0, 0, 0);
         
         const fechaVencimiento = new Date(fechaEmision.getTime() + (diasPlazo * 24 * 60 * 60 * 1000));
@@ -176,7 +197,7 @@ const CuentasPorPagar = () => {
                         <div className="text-xs text-slate-500">NIT: {orden.proveedor?.nit}</div>
                       </td>
                       <td className="py-4 px-6 text-slate-300 font-mono text-xs">
-                        {new Date(orden.fecha).toLocaleDateString('es-CO')}
+                        {parseFechaSegura(orden.fecha).toLocaleDateString('es-CO')}
                       </td>
                       <td className="py-4 px-6 text-slate-400 text-xs">{orden.proveedor?.formaPago}</td>
                       <td className="py-4 px-6 font-mono text-slate-300">

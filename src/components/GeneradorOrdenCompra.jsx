@@ -31,7 +31,7 @@ const GeneradorOrdenCompra = () => {
 
   const ordenCompleta = {
     consecutivo: metadatos.consecutivo || 'OC-000',
-    fecha: new Date().toLocaleDateString('es-CO'),
+    fecha: new Date().toISOString().split('T')[0],
     proveedor: { 
       nit: metadatos.proveedorData?.nit || metadatos.idProveedor, 
       razonSocial: metadatos.proveedorData?.razonSocial || ('PROVEEDOR ' + metadatos.idProveedor),
