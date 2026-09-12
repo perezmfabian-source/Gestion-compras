@@ -6,6 +6,7 @@ import { MAESTRO_MATERIALES, MAESTRO_OBRAS, MAESTRO_PROVEEDORES } from '../utils
 const IVA_TASA = 0.19;
 
 const METADATOS_INICIALES = {
+  consecutivo: 'OC-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
   idProveedor: '',
   idCentroCosto: '',
   proveedorData: null,
@@ -129,13 +130,38 @@ export const useComprasStore = create(
         return { subtotal, iva, retenciones, totalRetenciones, total };
       },
 
-      // --- FLUJO DE GUARDADO (INTEGRACIÓN) ---
+      // --- FLUJO DE GUARDADO Y EDICIÓN (INTEGRACIÓN) ---
       guardarOrden: (ordenJSON) => set((state) => {
+        // Si ya existe la orden en el historial (edición), la reemplazamos
+        const existe = state.historialOrdenes.some(o => o.consecutivo === ordenJSON.consecutivo);
+        let nuevoHistorial;
+        
+        if (existe) {
+          nuevoHistorial = state.historialOrdenes.map(o => 
+            o.consecutivo === ordenJSON.consecutivo ? ordenJSON : o
+          );
+        } else {
+          nuevoHistorial = [ordenJSON, ...(state.historialOrdenes || [])];
+        }
+
         return {
-          historialOrdenes: [ordenJSON, ...(state.historialOrdenes || [])],
-          metadatos: METADATOS_INICIALES,
+          historialOrdenes: nuevoHistorial,
+          // Reiniciar con un nuevo consecutivo para la siguiente orden
+          metadatos: {
+            ...METADATOS_INICIALES,
+            consecutivo: 'OC-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+          },
           materiales: [],
           requiereAutorizacionSobrecosto: false
+        };
+      }),
+
+      cargarOrden: (ordenJSON) => set((state) => {
+        // Cargar los datos crudos y los ítems al formulario activo
+        return {
+          metadatos: ordenJSON._rawMetadatos || METADATOS_INICIALES,
+          materiales: ordenJSON.items || [],
+          requiereAutorizacionSobrecosto: ordenJSON.items.some(itemTieneSobrecosto)
         };
       }),
 

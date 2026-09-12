@@ -27,8 +27,10 @@ const GeneradorOrdenCompra = () => {
   const guardarOrden = useComprasStore((state) => state.guardarOrden);
   const historialOrdenes = useComprasStore((state) => state.historialOrdenes);
 
+  const cargarOrden = useComprasStore((state) => state.cargarOrden);
+
   const ordenCompleta = {
-    consecutivo: 'OC-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0'),
+    consecutivo: metadatos.consecutivo || 'OC-000',
     fecha: new Date().toLocaleDateString('es-CO'),
     proveedor: { 
       nit: metadatos.proveedorData?.nit || metadatos.idProveedor, 
@@ -42,7 +44,8 @@ const GeneradorOrdenCompra = () => {
       ciudad: metadatos.obraData?.ciudad || 'N/A'
     },
     items: materiales,
-    totales: totales
+    totales: totales,
+    _rawMetadatos: metadatos,
   };
 
   return (
@@ -378,6 +381,7 @@ const GeneradorOrdenCompra = () => {
                     <th className="py-3 px-4">Fecha</th>
                     <th className="py-3 px-4">Proveedor</th>
                     <th className="py-3 px-4">Centro de Costo</th>
+                    <th className="py-3 px-4">Pago</th>
                     <th className="py-3 px-4 text-right">Total Neto</th>
                     <th className="py-3 px-4 text-center">Acciones</th>
                   </tr>
@@ -392,19 +396,39 @@ const GeneradorOrdenCompra = () => {
                         <div className="text-xs text-slate-400">NIT: {orden.proveedor?.nit}</div>
                       </td>
                       <td className="py-3 px-4 text-slate-700 text-xs">{orden.obra?.nombre}</td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${orden.proveedor?.formaPago?.toLowerCase().includes('contado') ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {orden.proveedor?.formaPago || 'Contado'}
+                        </span>
+                      </td>
                       <td className="py-3 px-4 text-right font-mono font-bold text-emerald-600">
                         {formatCOP(orden.totales?.total)}
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <PDFDownloadLink
-                          document={<OrdenCompraPDF orden={orden} />}
-                          fileName={`Orden_Compra_${orden.consecutivo}.pdf`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
-                        >
-                          {({ loading }) => (
-                            loading ? 'Cargando...' : 'Descargar PDF'
-                          )}
-                        </PDFDownloadLink>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              cargarOrden(orden);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Editar
+                          </button>
+                          
+                          <PDFDownloadLink
+                            document={<OrdenCompraPDF orden={orden} />}
+                            fileName={`Orden_Compra_${orden.consecutivo}.pdf`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors"
+                          >
+                            {({ loading }) => (
+                              loading ? 'Cargando...' : 'Descargar PDF'
+                            )}
+                          </PDFDownloadLink>
+                        </div>
                       </td>
                     </tr>
                   ))}
