@@ -54,6 +54,7 @@ const ConfiguracionTributaria = () => {
     setNuevoConcepto({ concepto: item.concepto, baseUvt: item.baseUvt, porcentaje: item.porcentaje });
     setEditandoConceptoId(item.id);
     setMostrarFormConcepto(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleEliminarConcepto = (id) => {
@@ -95,6 +96,7 @@ const ConfiguracionTributaria = () => {
     setNuevaTarifa(item.tarifa);
     setEditandoMunicipioId(item.id);
     setMostrarFormIca(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleEliminarMunicipio = (id) => {
