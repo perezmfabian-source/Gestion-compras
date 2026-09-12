@@ -251,6 +251,17 @@ export const useComprasStore = create(
           o.consecutivo === consecutivo ? { ...o, estadoPago: nuevoEstado } : o
         )
       })),
+
+      registrarEntradaAlmacen: (nuevaEntrada) => set((state) => {
+        const entradasActualizadas = [
+          { ...nuevaEntrada, idEntrada: `ENT-${Date.now()}`, fechaRecepcion: new Date().toISOString() },
+          ...state.entradasAlmacen
+        ];
+
+        return {
+          entradasAlmacen: entradasActualizadas
+        };
+      }),
       
       eliminarOrden: (consecutivo) => set((state) => {
         return {

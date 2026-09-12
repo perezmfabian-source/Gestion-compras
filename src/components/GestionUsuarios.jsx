@@ -250,7 +250,17 @@ const GestionUsuarios = () => {
                           </button>
                         </td>
                         <td className="py-4 px-4 text-center flex justify-center gap-2">
-                          <button className="p-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20 transition-colors" title="Permisos">
+                          <button 
+                            onClick={() => {
+                              let permisos = '';
+                              if (u.rol === 'ADMINISTRADOR') permisos = 'Acceso total al sistema, auditoría y seguridad.';
+                              else if (u.rol === 'ANALISTA') permisos = 'Lectura y escritura en órdenes, consulta de proveedores.';
+                              else permisos = 'Lectura de órdenes y revisión presupuestal.';
+                              alert(`Permisos para ${u.rol}:\n\n${permisos}\n\nNota: Los permisos están vinculados a su Rol corporativo.`);
+                            }}
+                            className="p-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20 transition-colors" 
+                            title="Ver Permisos"
+                          >
                             🛡️
                           </button>
                           <button onClick={() => abrirModalEditar(u)} className="p-2 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20 transition-colors" title="Editar">
