@@ -51,6 +51,7 @@ export const useComprasStore = create(
       
       // --- HISTORIAL DE ÓRDENES Y PROVEEDORES (PRESUPRO INTEGRATION) ---
       historialOrdenes: [],
+      entradasAlmacen: [], // Historial de remisiones y recepciones en obra
       proveedores: Object.values(MAESTRO_PROVEEDORES),
 
       // --- CONFIGURACIÓN TRIBUTARIA GLOBAL ---
@@ -274,6 +275,7 @@ export const useComprasStore = create(
       name: 'presupro-compras-storage', // persite en localStorage
       partialize: (state) => ({ 
         historialOrdenes: state.historialOrdenes,
+        entradasAlmacen: state.entradasAlmacen,
         proveedores: state.proveedores,
         empresaEmisora: state.empresaEmisora,
         configTributaria: state.configTributaria,
