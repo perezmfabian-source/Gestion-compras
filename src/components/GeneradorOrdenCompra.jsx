@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useComprasStore } from '../store/useComprasStore';
 import OrdenCompraPDF from './OrdenCompraPDF';
-import ModalCRMProveedores from './ModalCRMProveedores';
 import Dialog from './Dialog';
 
 /**

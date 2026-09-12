@@ -21,10 +21,11 @@ const CuentasPorPagar = () => {
     if (fechaStr.includes('-')) return new Date(fechaStr + 'T00:00:00');
     if (fechaStr.includes('/')) {
       const partes = fechaStr.split('/');
-      // En Colombia el formato generado fue DD/MM/YYYY (ej. 12/9/2026 = 12 de Septiembre)
-      // JS 'new Date()' erróneamente lo leía como MM/DD/YYYY (9 de Diciembre)
-      const dia = parseInt(partes[0]);
-      const mes = parseInt(partes[1]);
+      // Dado que en el PC del usuario `toLocaleDateString` generó "9/12/2026" para el 12 de Septiembre,
+      // su sistema forzó el formato MM/DD/YYYY. 
+      // Por ende, partes[0] es el MES y partes[1] es el DÍA.
+      const mes = parseInt(partes[0]);
+      const dia = parseInt(partes[1]);
       const anio = parseInt(partes[2]);
       
       return new Date(anio, mes - 1, dia);

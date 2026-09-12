@@ -372,7 +372,6 @@ const Almacen = () => {
           </div>
         </div>
       )}
-      </div>
       <Dialog 
         isOpen={dialogConfig.isOpen}
         title="Atención"
