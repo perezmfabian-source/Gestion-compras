@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
 
 const ConfiguracionTributaria = () => {
@@ -13,11 +13,14 @@ const ConfiguracionTributaria = () => {
   const [uvt, setUvt] = useState(configActual.uvt || 52289);
   
   const [conceptosRetefuente, setConceptosRetefuente] = useState(configActual.conceptosRetefuente || []);
+  const [tarifasIca, setTarifasIca] = useState(configActual.tarifasIca || []);
+
+  useEffect(() => {
+    actualizarConfigTributaria({ uvt, conceptosRetefuente, tarifasIca });
+  }, [uvt, conceptosRetefuente, tarifasIca]);
   const [nuevoConcepto, setNuevoConcepto] = useState({ concepto: '', baseUvt: '', porcentaje: '' });
   const [mostrarFormConcepto, setMostrarFormConcepto] = useState(false);
   const [editandoConceptoId, setEditandoConceptoId] = useState(null);
-  
-  const [tarifasIca, setTarifasIca] = useState(configActual.tarifasIca || []);
   
   const [nuevaCiudad, setNuevaCiudad] = useState('');
   const [nuevaActividad, setNuevaActividad] = useState('');

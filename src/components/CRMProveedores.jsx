@@ -3,6 +3,7 @@ import { useComprasStore } from '../store/useComprasStore';
 
 const CRMProveedores = () => {
   const proveedores = useComprasStore(state => state.proveedores) || [];
+  const configTributaria = useComprasStore(state => state.configTributaria) || { tarifasIca: [] };
   const guardarProveedor = useComprasStore(state => state.guardarProveedor);
   const eliminarProveedor = useComprasStore(state => state.eliminarProveedor);
 
@@ -11,6 +12,11 @@ const CRMProveedores = () => {
   const [formData, setFormData] = useState({
     razonSocial: '',
     nit: '',
+    direccion: '',
+    ciudad: '',
+    telefono: '',
+    celular: '',
+    vendedor: '',
     perfilTributario: 'Regimen Comun',
     actividad: '',
     formaPago: 'Contado',
@@ -18,6 +24,9 @@ const CRMProveedores = () => {
   });
 
   const [modoEdicion, setModoEdicion] = useState(false);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [modalDocs, setModalDocs] = useState(null); // Para ver los documentos
+  const [proveedorABorrar, setProveedorABorrar] = useState(null); // Para modal de borrado
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -27,8 +36,12 @@ const CRMProveedores = () => {
     guardarProveedor(formData);
     
     // Resetear form
-    setFormData({ razonSocial: '', nit: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+    setFormData({ 
+      razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', 
+      perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] 
+    });
     setModoEdicion(false);
+    setMostrarForm(false);
   };
 
   const cargarParaEdicion = (prov) => {
@@ -39,7 +52,7 @@ const CRMProveedores = () => {
     };
     setFormData(formAEditar);
     setModoEdicion(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMostrarForm(true);
   };
 
   const handleFileUpload = (e) => {
@@ -85,17 +98,31 @@ const CRMProveedores = () => {
     <div className="min-h-screen bg-slate-900 text-slate-200 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         
-        <header className="border-b border-slate-700 pb-6">
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">CRM de Proveedores</h1>
-          <p className="text-slate-400 mt-2">
-            Gestión maestra de entidades para asignación de perfiles tributarios y ReteICA.
-          </p>
+        <header className="border-b border-slate-700 pb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">CRM de Proveedores</h1>
+            <p className="text-slate-400 mt-2">
+              Gestión maestra de entidades para asignación de perfiles tributarios y ReteICA.
+            </p>
+          </div>
+          <button 
+            onClick={() => {
+              setFormData({ razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+              setModoEdicion(false);
+              setMostrarForm(true);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-emerald-900/50 transition-all flex items-center gap-2"
+          >
+            <span className="text-xl">+</span> Nuevo Proveedor
+          </button>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="flex flex-col gap-8">
           
-          {/* Formulario de Registro */}
-          <div className="lg:col-span-4 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 h-fit">
+          {/* Formulario de Registro (Modal) */}
+          {mostrarForm && (
+            <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-600 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
             <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${modoEdicion ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
@@ -137,19 +164,101 @@ const CRMProveedores = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Dirección</label>
+                  <input
+                    type="text"
+                    value={formData.direccion || ''}
+                    onChange={(e) => setFormData({...formData, direccion: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                    placeholder="Ej. Calle 123 #45-67"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Ciudad</label>
+                  <input
+                    type="text"
+                    list="ciudades-list"
+                    value={formData.ciudad || ''}
+                    onChange={(e) => setFormData({...formData, ciudad: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                    placeholder="Ej. Bogotá"
+                  />
+                  <datalist id="ciudades-list">
+                    {[...new Set(configTributaria.tarifasIca?.map(t => t.ciudad))].map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Teléfono Fijo</label>
+                  <input
+                    type="text"
+                    value={formData.telefono || ''}
+                    onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                    placeholder="Ej. 601 123 4567"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Celular</label>
+                  <input
+                    type="text"
+                    value={formData.celular || ''}
+                    onChange={(e) => setFormData({...formData, celular: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                    placeholder="Ej. 300 123 4567"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Perfil Tributario</label>
-                <select
-                  value={formData.perfilTributario}
-                  onChange={(e) => setFormData({...formData, perfilTributario: e.target.value})}
+                <label className="block text-sm font-medium text-slate-400 mb-1">Vendedor / Contacto</label>
+                <input
+                  type="text"
+                  value={formData.vendedor || ''}
+                  onChange={(e) => setFormData({...formData, vendedor: e.target.value})}
                   className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-                >
-                  <option value="Autorretenedor">Gran Contribuyente Autorretenedor</option>
-                  <option value="Gran Contribuyente">Gran Contribuyente</option>
-                  <option value="Regimen Comun">Régimen Común (Responsable de IVA)</option>
-                  <option value="Regimen Simplificado">Régimen Simplificado (Persona Natural)</option>
-                  <option value="Regimen Simple">Régimen Simple de Tributación (RST)</option>
-                </select>
+                  placeholder="Ej. Juan Pérez"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Perfil Tributario</label>
+                  <select
+                    value={formData.perfilTributario}
+                    onChange={(e) => setFormData({...formData, perfilTributario: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                  >
+                    <option value="Autorretenedor">Gran Contribuyente Autorretenedor</option>
+                    <option value="Gran Contribuyente">Gran Contribuyente</option>
+                    <option value="Regimen Comun">Régimen Común (Responsable de IVA)</option>
+                    <option value="Regimen Simplificado">Régimen Simplificado (Persona Natural)</option>
+                    <option value="Regimen Simple">Régimen Simple de Tributación (RST)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Actividad (ReteICA)</label>
+                  <select
+                    value={formData.actividad || ''}
+                    onChange={(e) => setFormData({...formData, actividad: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                  >
+                    <option value="">-- Seleccionar --</option>
+                    {configTributaria.tarifasIca
+                      ?.filter(t => !formData.ciudad || t.ciudad.toUpperCase() === formData.ciudad.toUpperCase())
+                      .map((t) => (
+                        <option key={t.id} value={t.actividad}>
+                          {t.actividad} ({t.tarifa} x Mil)
+                        </option>
+                      ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -207,9 +316,11 @@ const CRMProveedores = () => {
               </button>
             </form>
           </div>
+        </div>
+        )}
 
           {/* Tabla de Proveedores */}
-          <div className="lg:col-span-8 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden">
+          <div className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden">
             <div className="p-6 border-b border-slate-700">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,8 +335,8 @@ const CRMProveedores = () => {
                 <thead>
                   <tr className="bg-slate-900/50 text-xs text-slate-400 uppercase tracking-wider">
                     <th className="py-4 px-6 font-semibold">Razón Social / NIT</th>
+                    <th className="py-4 px-6 font-semibold">Ubicación y Contacto</th>
                     <th className="py-4 px-6 font-semibold">Perfil / Pago</th>
-                    <th className="py-4 px-6 font-semibold text-center">Documentos</th>
                     <th className="py-4 px-6 text-center font-semibold">Acciones</th>
                   </tr>
                 </thead>
@@ -237,28 +348,40 @@ const CRMProveedores = () => {
                         <div className="text-xs text-slate-500 font-mono mt-0.5">{prov.nit}</div>
                       </td>
                       <td className="py-4 px-6">
+                        <div className="text-xs text-slate-300">
+                          {prov.ciudad ? <span className="font-bold text-emerald-400">{prov.ciudad}</span> : <span className="text-slate-600 italic">Sin ciudad</span>}
+                          {prov.direccion && <span className="block mt-0.5">{prov.direccion}</span>}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                          {prov.vendedor && <span className="block font-semibold text-slate-300">👤 {prov.vendedor}</span>}
+                          {prov.telefono && <span>📞 {prov.telefono}</span>}
+                          {prov.celular && <span className="ml-2">📱 {prov.celular}</span>}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-1">
                           {prov.regimen || prov.perfilTributario}
                         </span>
                         <div className="text-[10px] uppercase font-bold text-slate-500">{prov.formaPago || 'Contado'}</div>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        {prov.documentos && prov.documentos.length > 0 ? (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/80 border border-slate-700 text-slate-300 text-xs font-semibold" title={prov.documentos.map(d=>d.nombre).join(', ')}>
-                            📄 {prov.documentos.length} Docs
+                        <div className="flex flex-col gap-2 items-center justify-center">
+                          <div className="flex gap-2 justify-center">
+                            <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
+                              ✏️
+                            </button>
+                            <button onClick={() => setProveedorABorrar(prov)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
+                              🗑️
+                            </button>
                           </div>
-                        ) : (
-                          <span className="text-xs text-slate-600 italic">Sin adjuntos</span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
-                            ✏️
-                          </button>
-                          <button onClick={() => { if(window.confirm('¿Borrar este proveedor?')) eliminarProveedor(prov.nit) }} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
-                            🗑️
-                          </button>
+                          {prov.documentos && prov.documentos.length > 0 && (
+                            <button 
+                              onClick={() => setModalDocs(prov)}
+                              className="text-xs bg-slate-700/50 hover:bg-slate-700 text-slate-300 border border-slate-600 px-2 py-1 rounded w-full max-w-[80px]"
+                            >
+                              📄 {prov.documentos.length} Docs
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -277,6 +400,75 @@ const CRMProveedores = () => {
 
         </div>
       </div>
+
+      {/* Modal de Borrado */}
+      {proveedorABorrar && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl w-full max-w-sm overflow-hidden text-center p-6">
+            <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center mx-auto mb-4 text-3xl">
+              ⚠️
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">¿Eliminar Proveedor?</h3>
+            <p className="text-slate-400 text-sm mb-6">
+              Estás a punto de eliminar a <span className="font-bold text-white">{proveedorABorrar.razonSocial}</span>. Esta acción no se puede deshacer.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button 
+                onClick={() => setProveedorABorrar(null)} 
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors flex-1"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  eliminarProveedor(proveedorABorrar.nit);
+                  setProveedorABorrar(null);
+                }} 
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg transition-colors flex-1"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Documentos */}
+      {modalDocs && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span className="text-xl">📄</span> Documentos de {modalDocs.razonSocial}
+              </h3>
+              <button onClick={() => setModalDocs(null)} className="text-slate-400 hover:text-white transition-colors">
+                ✕
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              {modalDocs.documentos.map((doc, i) => (
+                <div key={i} className="flex items-center justify-between p-3 bg-slate-900/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg mb-2 transition-colors">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <span className="text-2xl">📑</span>
+                    <span className="text-sm font-medium text-slate-200 truncate">{doc.nombre}</span>
+                  </div>
+                  <button 
+                    onClick={() => descargarDocumento(doc)}
+                    className="ml-4 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0"
+                  >
+                    ⬇️ Descargar
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t border-slate-700 bg-slate-900/50 text-right">
+              <button onClick={() => setModalDocs(null)} className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold rounded-lg transition-colors">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

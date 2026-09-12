@@ -220,7 +220,7 @@ export function OrdenCompraPDF({ orden = {} }) {
           {/* Fila 4 */}
           <View style={styles.row}>
             <View style={[styles.cell, { width: '40%' }]}>
-              <Text style={styles.text}>DPTO DE VENTAS: ADMINISTRACIÓN</Text>
+              <Text style={styles.text}>DPTO DE VENTAS: {proveedor.vendedor?.toUpperCase() || 'ADMINISTRACIÓN'}</Text>
             </View>
             <View style={[styles.cell, { width: '10%' }]}>
               <Text style={styles.label}>Dirección:</Text>
@@ -229,7 +229,7 @@ export function OrdenCompraPDF({ orden = {} }) {
               <Text style={styles.text}>{proveedor.direccion || ''}</Text>
             </View>
             <View style={[styles.cellNoBorder, { width: '20%' }]}>
-              <Text style={styles.label}>FAX:</Text>
+              <Text style={styles.label}>Ciudad: <Text style={styles.text}>{proveedor.ciudad || ''}</Text></Text>
             </View>
           </View>
 
