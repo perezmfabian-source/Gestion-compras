@@ -1,9 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
+import Dialog from './Dialog';
 
 const CuentasPorPagar = () => {
   const historialOrdenes = useComprasStore((state) => state.historialOrdenes);
   const actualizarEstadoPagoOrden = useComprasStore((state) => state.actualizarEstadoPagoOrden);
+
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: null });
 
   const formatCOP = (valor) =>
     new Intl.NumberFormat('es-CO', {
@@ -18,16 +21,12 @@ const CuentasPorPagar = () => {
     if (fechaStr.includes('-')) return new Date(fechaStr + 'T00:00:00');
     if (fechaStr.includes('/')) {
       const partes = fechaStr.split('/');
-      let mes = parseInt(partes[0]);
-      let dia = parseInt(partes[1]);
+      // En Colombia el formato generado fue DD/MM/YYYY (ej. 12/9/2026 = 12 de Septiembre)
+      // JS 'new Date()' erróneamente lo leía como MM/DD/YYYY (9 de Diciembre)
+      const dia = parseInt(partes[0]);
+      const mes = parseInt(partes[1]);
       const anio = parseInt(partes[2]);
       
-      // Si el primer número es > 12, seguro es el día (Formato DD/MM)
-      if (mes > 12) {
-        dia = parseInt(partes[0]);
-        mes = parseInt(partes[1]);
-      }
-      // Por defecto asumimos MM/DD/YYYY para corregir el bug donde 9/12/2026 se iba a Diciembre
       return new Date(anio, mes - 1, dia);
     }
     return new Date(fechaStr);
@@ -214,9 +213,16 @@ const CuentasPorPagar = () => {
                       <td className="py-4 px-6 text-center">
                         <button 
                           onClick={() => {
-                            if(window.confirm(`¿Confirmas el pago de la orden ${orden.consecutivo}?`)) {
-                              actualizarEstadoPagoOrden(orden.consecutivo, 'Pagado');
-                            }
+                            setDialogConfig({
+                              isOpen: true,
+                              type: 'confirm',
+                              title: 'Confirmar Pago',
+                              message: `¿Confirmas el pago de la orden ${orden.consecutivo}?`,
+                              onConfirm: () => {
+                                actualizarEstadoPagoOrden(orden.consecutivo, 'Pagado');
+                                setDialogConfig({ isOpen: false });
+                              }
+                            });
                           }}
                           className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-400 font-semibold rounded transition-colors text-xs border border-indigo-500/30"
                         >
@@ -268,6 +274,14 @@ const CuentasPorPagar = () => {
         )}
 
       </div>
+      <Dialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
+      />
     </div>
   );
 };

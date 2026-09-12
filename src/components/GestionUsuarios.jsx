@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
+import Dialog from './Dialog';
 
 const GestionUsuarios = () => {
   const { 
@@ -20,12 +21,19 @@ const GestionUsuarios = () => {
   const [showModal, setShowModal] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA' });
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
   const esAdmin = usuarioActual?.rol === 'ADMINISTRADOR';
 
   const handleGuardarMantenimiento = () => {
     toggleMantenimiento(!modoMantenimiento, mantenimientoTexto);
-    alert(`Modo mantenimiento ${!modoMantenimiento ? 'Activado' : 'Desactivado'} exitosamente.`);
+    setDialogConfig({
+      isOpen: true,
+      type: 'alert',
+      title: 'Mantenimiento',
+      message: `Modo mantenimiento ${!modoMantenimiento ? 'Activado' : 'Desactivado'} exitosamente.`,
+      onConfirm: () => setDialogConfig({ isOpen: false })
+    });
   };
 
   const abrirModalNuevo = () => {
@@ -53,7 +61,13 @@ const GestionUsuarios = () => {
 
   const toggleEstadoUsuario = (u) => {
     if (u.id === usuarioActual.id) {
-      alert('No puedes desactivar tu propio usuario.');
+      setDialogConfig({
+        isOpen: true,
+        type: 'alert',
+        title: 'Acción Denegada',
+        message: 'No puedes desactivar tu propio usuario.',
+        onConfirm: () => setDialogConfig({ isOpen: false })
+      });
       return;
     }
     const nuevoEstado = u.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
@@ -62,12 +76,25 @@ const GestionUsuarios = () => {
 
   const handleEliminar = (u) => {
     if (u.id === usuarioActual.id) {
-      alert('No puedes eliminar tu propio usuario.');
+      setDialogConfig({
+        isOpen: true,
+        type: 'alert',
+        title: 'Acción Denegada',
+        message: 'No puedes eliminar tu propio usuario.',
+        onConfirm: () => setDialogConfig({ isOpen: false })
+      });
       return;
     }
-    if (window.confirm(`¿Estás seguro de eliminar a ${u.nombre}?`)) {
-      eliminarUsuario(u.id);
-    }
+    setDialogConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: 'Eliminar Usuario',
+      message: `¿Estás seguro de eliminar a ${u.nombre}?`,
+      onConfirm: () => {
+        eliminarUsuario(u.id);
+        setDialogConfig({ isOpen: false });
+      }
+    });
   };
 
   if (!esAdmin && activeTab === 'Administración') {
@@ -252,11 +279,16 @@ const GestionUsuarios = () => {
                         <td className="py-4 px-4 text-center flex justify-center gap-2">
                           <button 
                             onClick={() => {
-                              let permisos = '';
-                              if (u.rol === 'ADMINISTRADOR') permisos = 'Acceso total al sistema, auditoría y seguridad.';
-                              else if (u.rol === 'ANALISTA') permisos = 'Lectura y escritura en órdenes, consulta de proveedores.';
-                              else permisos = 'Lectura de órdenes y revisión presupuestal.';
-                              alert(`Permisos para ${u.rol}:\n\n${permisos}\n\nNota: Los permisos están vinculados a su Rol corporativo.`);
+                              const permisos = u.rol === 'ADMINISTRADOR' 
+                                ? '✅ Acceso total a todos los módulos\n✅ Configuración del sistema\n✅ Gestión de usuarios' 
+                                : '✅ Crear Órdenes de Compra\n✅ Modificar sus propias órdenes\n❌ Configuración del sistema';
+                              setDialogConfig({
+                                isOpen: true,
+                                type: 'alert',
+                                title: `Permisos: ${u.rol}`,
+                                message: `${permisos}\n\nNota: Los permisos están vinculados a su Rol corporativo.`,
+                                onConfirm: () => setDialogConfig({ isOpen: false })
+                              });
                             }}
                             className="p-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20 transition-colors" 
                             title="Ver Permisos"
@@ -346,6 +378,14 @@ const GestionUsuarios = () => {
         </div>
       )}
 
+      <Dialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
+      />
     </div>
   );
 };

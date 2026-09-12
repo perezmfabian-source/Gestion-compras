@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
+import Dialog from './Dialog';
 import { useAuthStore } from '../store/useAuthStore';
 
 const Almacen = () => {
@@ -92,9 +93,11 @@ const Almacen = () => {
     }));
   };
 
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, message: '' });
+
   const guardarRecepcion = () => {
     if (!datosRecepcion.remision) {
-      alert("Por favor ingrese el número de remisión o factura del proveedor.");
+      setDialogConfig({ isOpen: true, message: "Por favor ingrese el número de remisión o factura del proveedor." });
       return;
     }
 
@@ -106,7 +109,7 @@ const Almacen = () => {
       .filter(item => item.cantidadLlegando > 0); // Solo guardar los que llegó al menos 1
 
     if (itemsA_Guardar.length === 0) {
-      alert("Debes indicar al menos un ítem recibido con cantidad mayor a cero.");
+      setDialogConfig({ isOpen: true, message: "Debes indicar al menos un ítem recibido con cantidad mayor a cero." });
       return;
     }
 
@@ -369,7 +372,14 @@ const Almacen = () => {
           </div>
         </div>
       )}
-
+      </div>
+      <Dialog 
+        isOpen={dialogConfig.isOpen}
+        title="Atención"
+        message={dialogConfig.message}
+        type="alert"
+        onConfirm={() => setDialogConfig({ isOpen: false, message: '' })}
+      />
     </div>
   );
 };

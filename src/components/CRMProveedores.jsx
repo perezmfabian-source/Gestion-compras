@@ -1,13 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
+import { Mail, Phone, MapPin, Building2, UserCircle, UploadCloud, X, FileText, Download } from 'lucide-react';
+import Dialog from './Dialog';
 
 const CRMProveedores = () => {
   const proveedores = useComprasStore(state => state.proveedores) || [];
   const configTributaria = useComprasStore(state => state.configTributaria) || { tarifasIca: [] };
   const guardarProveedor = useComprasStore(state => state.guardarProveedor);
   const eliminarProveedor = useComprasStore(state => state.eliminarProveedor);
+  const tarifasIca = configTributaria?.tarifasIca || [];
 
   const fileInputRef = useRef(null);
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
   
   const [formData, setFormData] = useState({
     razonSocial: '',
@@ -61,7 +65,13 @@ const CRMProveedores = () => {
     files.forEach(file => {
       // Validar tamaño aprox < 2MB para no matar localStorage
       if(file.size > 2 * 1024 * 1024) {
-        alert(`El archivo ${file.name} es demasiado grande. Máximo 2MB permitidos para demo local.`);
+        setDialogConfig({
+          isOpen: true,
+          type: 'alert',
+          title: 'Archivo muy grande',
+          message: `El archivo ${file.name} es demasiado grande. Máximo 2MB permitidos para demo local.`,
+          onConfirm: () => setDialogConfig({ isOpen: false })
+        });
         return;
       }
       
@@ -469,6 +479,15 @@ const CRMProveedores = () => {
           </div>
         </div>
       )}
+
+      <Dialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
+      />
     </div>
   );
 };

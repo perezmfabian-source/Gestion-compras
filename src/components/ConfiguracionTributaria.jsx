@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
+import Dialog from './Dialog';
 
 const ConfiguracionTributaria = () => {
   const empresaActual = useComprasStore((state) => state.empresaEmisora);
@@ -7,6 +8,8 @@ const ConfiguracionTributaria = () => {
   
   const configActual = useComprasStore((state) => state.configTributaria);
   const actualizarConfigTributaria = useComprasStore((state) => state.actualizarConfigTributaria);
+
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: 'Atención', message: '', onConfirm: null });
 
   const [empresaForm, setEmpresaForm] = useState(empresaActual);
 
@@ -195,10 +198,23 @@ const ConfiguracionTributaria = () => {
             <div className="flex gap-2">
               <button 
                 onClick={() => {
-                  if(window.confirm('¿Deseas sobreescribir tus conceptos actuales con la tabla oficial de la DIAN?')) {
-                    const tablaDian = useComprasStore.getState().configTributaria.conceptosRetefuente || [];
-                    if (tablaDian.length > 0) setConceptosRetefuente(tablaDian);
-                  }
+                  setDialogConfig({
+                    isOpen: true,
+                    type: 'confirm',
+                    title: 'Restablecer Valores DIAN',
+                    message: '¿Deseas sobreescribir tus conceptos actuales con la tabla oficial de la DIAN?',
+                    onConfirm: () => {
+                      setConceptosRetefuente([
+                        { id: 1, concepto: 'Honorarios y Consultorías', baseUvt: 0, basePesos: 0, tarifa: 11.0 },
+                        { id: 2, concepto: 'Honorarios (No declarantes)', baseUvt: 0, basePesos: 0, tarifa: 10.0 },
+                        { id: 3, concepto: 'Servicios Generales (Declarantes)', baseUvt: 4, basePesos: 0, tarifa: 4.0 },
+                        { id: 4, concepto: 'Servicios Generales (No declarantes)', baseUvt: 4, basePesos: 0, tarifa: 6.0 },
+                        { id: 5, concepto: 'Compras Generales (Declarantes)', baseUvt: 27, basePesos: 0, tarifa: 2.5 },
+                        { id: 6, concepto: 'Compras Generales (No declarantes)', baseUvt: 27, basePesos: 0, tarifa: 3.5 },
+                      ]);
+                      setDialogConfig({ isOpen: false });
+                    },
+                  });
                 }}
                 className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-600"
               >
@@ -288,7 +304,18 @@ const ConfiguracionTributaria = () => {
                          ✏️
                        </button>
                        <button 
-                         onClick={() => { if(window.confirm(`¿Borrar concepto ${item.concepto}?`)) handleEliminarConcepto(item.id) }} 
+                         onClick={() => {
+                           setDialogConfig({
+                             isOpen: true,
+                             type: 'confirm',
+                             title: 'Eliminar Concepto',
+                             message: `¿Borrar concepto ${item.concepto}?`,
+                             onConfirm: () => {
+                               handleEliminarConcepto(item.id);
+                               setDialogConfig({ isOpen: false });
+                             }
+                           });
+                         }}
                          className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" 
                          title="Eliminar"
                        >
@@ -394,7 +421,18 @@ const ConfiguracionTributaria = () => {
                          ✏️
                        </button>
                        <button 
-                         onClick={() => { if(window.confirm(`¿Borrar municipio ${item.ciudad}?`)) handleEliminarMunicipio(item.id) }} 
+                         onClick={() => {
+                           setDialogConfig({
+                             isOpen: true,
+                             type: 'confirm',
+                             title: 'Eliminar Municipio',
+                             message: `¿Borrar municipio ${item.ciudad}?`,
+                             onConfirm: () => {
+                               handleEliminarMunicipio(item.id);
+                               setDialogConfig({ isOpen: false });
+                             }
+                           });
+                         }}
                          className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" 
                          title="Eliminar"
                        >
@@ -411,19 +449,30 @@ const ConfiguracionTributaria = () => {
         <div className="flex justify-end">
           <button 
             onClick={() => {
-              // 1. Actualiza multi-tenant (Empresa)
               actualizarEmpresa(empresaForm);
-              // 2. Actualiza UVTs, Conceptos e ICA
               actualizarConfigTributaria({ uvt, conceptosRetefuente, tarifasIca });
-              alert('Configuración guardada exitosamente. Las variables se han sincronizado con el motor de impuestos.');
+              setDialogConfig({
+                isOpen: true,
+                type: 'alert',
+                title: 'Éxito',
+                message: 'Configuración guardada exitosamente. Las variables se han sincronizado con el motor de impuestos.',
+                onConfirm: () => setDialogConfig({ isOpen: false })
+              });
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-900/50 transition-all"
           >
             Guardar Configuración
           </button>
         </div>
-
       </div>
+      <Dialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
+      />
     </div>
   );
 };

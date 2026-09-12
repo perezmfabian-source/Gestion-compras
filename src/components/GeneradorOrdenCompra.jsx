@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useComprasStore } from '../store/useComprasStore';
-import { OrdenCompraPDF } from './OrdenCompraPDF';
+import OrdenCompraPDF from './OrdenCompraPDF';
+import ModalCRMProveedores from './ModalCRMProveedores';
+import Dialog from './Dialog';
 
 /**
  * Formateador de moneda para pesos colombianos (COP)
@@ -26,6 +28,8 @@ const GeneradorOrdenCompra = () => {
   const totales = getTotales();
   const guardarOrden = useComprasStore((state) => state.guardarOrden);
   const historialOrdenes = useComprasStore((state) => state.historialOrdenes);
+  
+  const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: null });
 
   const cargarOrden = useComprasStore((state) => state.cargarOrden);
 
@@ -439,9 +443,16 @@ const GeneradorOrdenCompra = () => {
 
                           <button
                             onClick={() => {
-                              if(window.confirm(`¿Seguro que deseas borrar la orden ${orden.consecutivo}?`)) {
-                                useComprasStore.getState().eliminarOrden(orden.consecutivo);
-                              }
+                              setDialogConfig({
+                                isOpen: true,
+                                type: 'confirm',
+                                title: 'Eliminar Orden',
+                                message: `¿Seguro que deseas borrar la orden ${orden.consecutivo}?`,
+                                onConfirm: () => {
+                                  useComprasStore.getState().eliminarOrden(orden.consecutivo);
+                                  setDialogConfig({ isOpen: false });
+                                }
+                              });
                             }}
                             title="Borrar Orden"
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
@@ -474,6 +485,16 @@ const GeneradorOrdenCompra = () => {
         )}
 
       </div>
+
+      <Dialog
+        isOpen={dialogConfig.isOpen}
+        type={dialogConfig.type}
+        title={dialogConfig.title}
+        message={dialogConfig.message}
+        onConfirm={dialogConfig.onConfirm}
+        onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
+      />
+
     </div>
   );
 };
