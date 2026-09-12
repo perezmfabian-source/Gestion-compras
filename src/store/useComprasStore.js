@@ -11,6 +11,7 @@ const METADATOS_INICIALES = {
   idCentroCosto: '',
   proveedorData: null,
   obraData: null,
+  conceptoRetencion: 1,
 };
 
 const crearId = () =>
@@ -32,21 +33,71 @@ const itemTieneSobrecosto = (item) => {
 export const useComprasStore = create(
   persist(
     (set, get) => ({
+      // --- CONFIGURACIÓN DE LA EMPRESA EMISORA ---
+      empresaEmisora: {
+        nombre: 'BUSTILLO INGENIERIA SAS',
+        nit: '900.000.000-1',
+        direccion: 'Barrio Bellavista Cra 56 B 7A-45',
+      },
+
+      actualizarEmpresa: (datos) => set((state) => ({
+        empresaEmisora: { ...state.empresaEmisora, ...datos }
+      })),
+
       // --- ESTADO LOCAL DE LA ORDEN EN CURSO ---
-      metadatos: METADATOS_INICIALES,
+      metadatos: { ...METADATOS_INICIALES, consecutivo: 'OC-001' },
       materiales: [],
       requiereAutorizacionSobrecosto: false,
       
-      // --- HISTORIAL DE ÓRDENES (PRESUPRO INTEGRATION) ---
+      // --- HISTORIAL DE ÓRDENES Y PROVEEDORES (PRESUPRO INTEGRATION) ---
       historialOrdenes: [],
+      proveedores: Object.values(MAESTRO_PROVEEDORES),
+
+      // --- CONFIGURACIÓN TRIBUTARIA GLOBAL ---
+      configTributaria: {
+        uvt: 52289,
+        conceptosRetefuente: [
+          { id: 1, concepto: 'Compras Generales (Declarantes)', baseUvt: 27, porcentaje: 2.5 },
+          { id: 2, concepto: 'Compras Generales (No Declarantes)', baseUvt: 27, porcentaje: 3.5 },
+          { id: 3, concepto: 'Servicios Generales', baseUvt: 4, porcentaje: 4.0 },
+          { id: 4, concepto: 'Honorarios y Consultoría', baseUvt: 0, porcentaje: 11.0 },
+        ],
+        tarifasIca: [
+          { id: 1, ciudad: 'CARTAGENA', actividad: 'Obras Civiles', tarifa: '9.66', estado: 'Activo' },
+          { id: 2, ciudad: 'MONTELIBANO', actividad: 'Servicios de Ingeniería', tarifa: '6.96', estado: 'Activo' },
+          { id: 3, ciudad: 'BARRANQUILLA', actividad: 'Suministros', tarifa: '10.00', estado: 'Activo' },
+        ]
+      },
+      actualizarConfigTributaria: (nuevaConfig) => set((state) => ({
+        configTributaria: { ...state.configTributaria, ...nuevaConfig }
+      })),
+
+      // --- ACCIONES DE PROVEEDORES ---
+      guardarProveedor: (proveedor) => set((state) => {
+        const existe = state.proveedores.find(p => p.nit === proveedor.nit);
+        if (existe) {
+          return {
+            proveedores: state.proveedores.map(p => p.nit === proveedor.nit ? proveedor : p)
+          };
+        }
+        return {
+          proveedores: [...state.proveedores, proveedor]
+        };
+      }),
+      eliminarProveedor: (nit) => set((state) => ({
+        proveedores: state.proveedores.filter(p => p.nit !== nit)
+      })),
 
       // --- ACCIONES DE FORMULARIO ---
       actualizarMetadatos: (campos) => set((state) => {
         const nuevo = { ...state.metadatos, ...campos };
         
-        // Auto-completar proveedor desde el Maestro (Simulación de DB PresuPro)
-        if (campos.idProveedor && MAESTRO_PROVEEDORES[campos.idProveedor]) {
-          nuevo.proveedorData = MAESTRO_PROVEEDORES[campos.idProveedor];
+        // Auto-completar proveedor desde el Estado Global (CRM)
+        if (campos.idProveedor) {
+          const provEncontrado = state.proveedores.find(p => 
+            p.nit.replace(/\D/g, '') === campos.idProveedor || p.nit === campos.idProveedor
+          );
+          nuevo.proveedorData = provEncontrado || null;
         } else if (campos.idProveedor !== undefined) {
           nuevo.proveedorData = null;
         }
@@ -118,11 +169,26 @@ export const useComprasStore = create(
           0
         );
         const iva = subtotal * IVA_TASA;
+        
+        // Buscar tarifa ICA dinámica basada en la ciudad de la obra seleccionada
+        const ciudadObra = (state.metadatos.obraData?.ciudad || '').toUpperCase();
+        const tarifaEncontrada = state.configTributaria.tarifasIca.find(t => t.ciudad.toUpperCase() === ciudadObra);
+        const tarifaIca = tarifaEncontrada ? (Number(tarifaEncontrada.tarifa) / 1000) : (state.metadatos.obraData?.tarifaIca || 0.00696);
+
+        // Buscar concepto de retención seleccionado o usar el primero por defecto
+        const conceptoIdSeleccionado = Number(state.metadatos.conceptoRetencion || 1);
+        let conceptoRetefuente = state.configTributaria.conceptosRetefuente.find(c => c.id === conceptoIdSeleccionado);
+        if (!conceptoRetefuente && state.configTributaria.conceptosRetefuente.length > 0) {
+          conceptoRetefuente = state.configTributaria.conceptosRetefuente[0];
+        }
+
         const retenciones = calcularRetenciones({
           subtotal,
           iva,
           perfilProveedor: state.metadatos.proveedorData?.perfilTributario || 'Regimen Comun',
-          tarifaIca: state.metadatos.obraData?.tarifaIca || 0.00696
+          tarifaIca,
+          uvtActual: state.configTributaria.uvt,
+          conceptoRetefuente
         });
         const totalRetenciones = aNumero(retenciones.totalRetenciones);
         const total = subtotal + iva - totalRetenciones;
@@ -132,24 +198,32 @@ export const useComprasStore = create(
 
       // --- FLUJO DE GUARDADO Y EDICIÓN (INTEGRACIÓN) ---
       guardarOrden: (ordenJSON) => set((state) => {
-        // Si ya existe la orden en el historial (edición), la reemplazamos
-        const existe = state.historialOrdenes.some(o => o.consecutivo === ordenJSON.consecutivo);
+        // Generar consecutivo real de manera secuencial si es nueva (no existe)
+        const historial = state.historialOrdenes || [];
+        const existe = historial.some(o => o.consecutivo === ordenJSON.consecutivo);
         let nuevoHistorial;
         
         if (existe) {
-          nuevoHistorial = state.historialOrdenes.map(o => 
+          nuevoHistorial = historial.map(o => 
             o.consecutivo === ordenJSON.consecutivo ? ordenJSON : o
           );
         } else {
-          nuevoHistorial = [ordenJSON, ...(state.historialOrdenes || [])];
+          // Si no existía, asegurar que tenga el número correcto
+          nuevoHistorial = [ordenJSON, ...historial];
         }
+
+        // Calcular el próximo consecutivo secuencial
+        const maxNum = nuevoHistorial.reduce((max, o) => {
+          const num = parseInt(o.consecutivo.replace(/\D/g, ''), 10) || 0;
+          return num > max ? num : max;
+        }, 0);
+        const nextConsecutivo = 'OC-' + (maxNum + 1).toString().padStart(3, '0');
 
         return {
           historialOrdenes: nuevoHistorial,
-          // Reiniciar con un nuevo consecutivo para la siguiente orden
           metadatos: {
             ...METADATOS_INICIALES,
-            consecutivo: 'OC-' + Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+            consecutivo: nextConsecutivo
           },
           materiales: [],
           requiereAutorizacionSobrecosto: false
@@ -157,18 +231,30 @@ export const useComprasStore = create(
       }),
 
       cargarOrden: (ordenJSON) => set((state) => {
-        // Cargar los datos crudos y los ítems al formulario activo
         return {
           metadatos: ordenJSON._rawMetadatos || METADATOS_INICIALES,
           materiales: ordenJSON.items || [],
           requiereAutorizacionSobrecosto: ordenJSON.items.some(itemTieneSobrecosto)
         };
       }),
+      
+      eliminarOrden: (consecutivo) => set((state) => {
+        return {
+          historialOrdenes: state.historialOrdenes.filter(o => o.consecutivo !== consecutivo)
+        };
+      }),
 
     }),
     {
       name: 'presupro-compras-storage', // persite en localStorage
-      partialize: (state) => ({ historialOrdenes: state.historialOrdenes }), // Solo persiste el historial, no los borradores
+      partialize: (state) => ({ 
+        historialOrdenes: state.historialOrdenes,
+        proveedores: state.proveedores,
+        empresaEmisora: state.empresaEmisora,
+        configTributaria: state.configTributaria,
+        // Guardar también el último consecutivo activo en el borrador si queremos
+        metadatos: { ...METADATOS_INICIALES, consecutivo: state.metadatos.consecutivo }
+      }), 
     }
   )
 );

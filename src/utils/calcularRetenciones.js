@@ -19,7 +19,9 @@ export function calcularRetenciones({
   iva = 0,
   perfilProveedor = 'Regimen Comun',
   perfilComprador = 'Regimen Comun',
-  tarifaIca = 0.00696
+  tarifaIca = 0.00696,
+  uvtActual = 52289,
+  conceptoRetefuente = null
 } = {}) {
   const base = redondear(subtotal);
   const ivaBase = redondear(iva);
@@ -28,9 +30,12 @@ export function calcularRetenciones({
   let reteica = 0;
   let reteiva = 0;
 
-  // 1. ReteFuente (Aplica si supera tope de 27 UVT y el proveedor no es Autorretenedor ni Regimen Simple)
-  if (base >= BASE_RETEFUENTE && perfilProveedor !== 'Autorretenedor' && perfilProveedor !== 'Regimen Simple') {
-    retefuente = redondear(base * 0.025); // 2.5% declarantes
+  // 1. ReteFuente dinámica según el concepto
+  if (conceptoRetefuente && perfilProveedor !== 'Autorretenedor' && perfilProveedor !== 'Regimen Simple') {
+    const baseMinimaCOP = uvtActual * (conceptoRetefuente.baseUvt || 0);
+    if (base >= baseMinimaCOP) {
+      retefuente = redondear(base * (Number(conceptoRetefuente.porcentaje) / 100));
+    }
   }
 
   // 2. ReteICA (Aplica según tarifa local, a menos que sea Régimen Simple o exento)

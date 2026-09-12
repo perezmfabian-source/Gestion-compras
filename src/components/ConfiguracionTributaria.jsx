@@ -1,14 +1,105 @@
 import React, { useState } from 'react';
+import { useComprasStore } from '../store/useComprasStore';
 
 const ConfiguracionTributaria = () => {
-  const [uvt, setUvt] = useState(52289);
-  const [topeRetefuente, setTopeRetefuente] = useState(27);
+  const empresaActual = useComprasStore((state) => state.empresaEmisora);
+  const actualizarEmpresa = useComprasStore((state) => state.actualizarEmpresa);
   
-  const [tarifasIca, setTarifasIca] = useState([
-    { id: 1, ciudad: 'Cartagena', actividad: 'Obras Civiles', tarifa: '9.66', estado: 'Activo' },
-    { id: 2, ciudad: 'Montelíbano', actividad: 'Servicios de Ingeniería', tarifa: '6.96', estado: 'Activo' },
-    { id: 3, ciudad: 'Barranquilla', actividad: 'Suministros', tarifa: '10.00', estado: 'Activo' },
-  ]);
+  const configActual = useComprasStore((state) => state.configTributaria);
+  const actualizarConfigTributaria = useComprasStore((state) => state.actualizarConfigTributaria);
+
+  const [empresaForm, setEmpresaForm] = useState(empresaActual);
+
+  const [uvt, setUvt] = useState(configActual.uvt || 52289);
+  
+  const [conceptosRetefuente, setConceptosRetefuente] = useState(configActual.conceptosRetefuente || []);
+  const [nuevoConcepto, setNuevoConcepto] = useState({ concepto: '', baseUvt: '', porcentaje: '' });
+  const [mostrarFormConcepto, setMostrarFormConcepto] = useState(false);
+  const [editandoConceptoId, setEditandoConceptoId] = useState(null);
+  
+  const [tarifasIca, setTarifasIca] = useState(configActual.tarifasIca || []);
+  
+  const [nuevaCiudad, setNuevaCiudad] = useState('');
+  const [nuevaActividad, setNuevaActividad] = useState('');
+  const [nuevaTarifa, setNuevaTarifa] = useState('');
+  const [mostrarFormIca, setMostrarFormIca] = useState(false);
+  const [editandoMunicipioId, setEditandoMunicipioId] = useState(null);
+
+  const handleAgregarConcepto = () => {
+    if (!nuevoConcepto.concepto || nuevoConcepto.baseUvt === '' || nuevoConcepto.porcentaje === '') return;
+    
+    if (editandoConceptoId) {
+      setConceptosRetefuente(conceptosRetefuente.map(c => 
+        c.id === editandoConceptoId 
+          ? { ...c, concepto: nuevoConcepto.concepto, baseUvt: Number(nuevoConcepto.baseUvt), porcentaje: Number(nuevoConcepto.porcentaje) }
+          : c
+      ));
+      setEditandoConceptoId(null);
+    } else {
+      setConceptosRetefuente([
+        ...conceptosRetefuente,
+        {
+          id: Date.now(),
+          concepto: nuevoConcepto.concepto,
+          baseUvt: Number(nuevoConcepto.baseUvt),
+          porcentaje: Number(nuevoConcepto.porcentaje)
+        }
+      ]);
+    }
+    setNuevoConcepto({ concepto: '', baseUvt: '', porcentaje: '' });
+    setMostrarFormConcepto(false);
+  };
+
+  const handleEditarConcepto = (item) => {
+    setNuevoConcepto({ concepto: item.concepto, baseUvt: item.baseUvt, porcentaje: item.porcentaje });
+    setEditandoConceptoId(item.id);
+    setMostrarFormConcepto(true);
+  };
+
+  const handleEliminarConcepto = (id) => {
+    setConceptosRetefuente(conceptosRetefuente.filter(c => c.id !== id));
+  };
+
+  const handleAgregarMunicipio = () => {
+    if (!nuevaCiudad || !nuevaTarifa) return;
+    
+    if (editandoMunicipioId) {
+      setTarifasIca(tarifasIca.map(t => 
+        t.id === editandoMunicipioId
+          ? { ...t, ciudad: nuevaCiudad.toUpperCase(), actividad: nuevaActividad || 'General', tarifa: nuevaTarifa }
+          : t
+      ));
+      setEditandoMunicipioId(null);
+    } else {
+      setTarifasIca([
+        ...tarifasIca,
+        {
+          id: Date.now(),
+          ciudad: nuevaCiudad.toUpperCase(),
+          actividad: nuevaActividad || 'General',
+          tarifa: nuevaTarifa,
+          estado: 'Activo'
+        }
+      ]);
+    }
+    
+    setNuevaCiudad('');
+    setNuevaActividad('');
+    setNuevaTarifa('');
+    setMostrarFormIca(false);
+  };
+
+  const handleEditarMunicipio = (item) => {
+    setNuevaCiudad(item.ciudad);
+    setNuevaActividad(item.actividad);
+    setNuevaTarifa(item.tarifa);
+    setEditandoMunicipioId(item.id);
+    setMostrarFormIca(true);
+  };
+
+  const handleEliminarMunicipio = (id) => {
+    setTarifasIca(tarifasIca.filter(t => t.id !== id));
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 p-4 sm:p-6 lg:p-8">
@@ -26,43 +117,170 @@ const ConfiguracionTributaria = () => {
           </p>
         </header>
 
+        {/* Configuración de la Empresa Emisora */}
+        <section className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6">
+          <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            Datos de la Empresa Emisora (Multi-tenant)
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+              <label className="block text-sm font-medium text-slate-400 mb-2">Razón Social</label>
+              <input
+                type="text"
+                value={empresaForm.nombre}
+                onChange={(e) => setEmpresaForm({...empresaForm, nombre: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+              <label className="block text-sm font-medium text-slate-400 mb-2">NIT</label>
+              <input
+                type="text"
+                value={empresaForm.nit}
+                onChange={(e) => setEmpresaForm({...empresaForm, nit: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+              <label className="block text-sm font-medium text-slate-400 mb-2">Dirección Principal</label>
+              <input
+                type="text"
+                value={empresaForm.direccion}
+                onChange={(e) => setEmpresaForm({...empresaForm, direccion: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-4">
+            Esta información aparecerá en el membrete superior (cabecera) de todos los PDF exportados.
+          </p>
+        </section>
+
         {/* Variables Nacionales (UVT) */}
         <section className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6">
           <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            Variables Nacionales (Estatuto Tributario)
+            Valor UVT Nacional
           </h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700">
-              <label className="block text-sm font-medium text-slate-400 mb-2">Valor actual UVT (COP)</label>
-              <div className="flex items-center gap-3">
-                <span className="text-slate-500">$</span>
-                <input
-                  type="number"
-                  value={uvt}
-                  onChange={(e) => setUvt(Number(e.target.value))}
-                  className="w-full bg-transparent text-2xl font-mono font-bold text-white focus:outline-none"
-                />
-              </div>
-              <p className="text-xs text-slate-500 mt-2">Decreto expedido por la DIAN anualmente.</p>
+          <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700 max-w-sm">
+            <label className="block text-sm font-medium text-slate-400 mb-2">Valor actual UVT (COP)</label>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-500">$</span>
+              <input
+                type="number"
+                value={uvt}
+                onChange={(e) => setUvt(Number(e.target.value))}
+                className="w-full bg-transparent text-2xl font-mono font-bold text-white focus:outline-none"
+              />
             </div>
+            <p className="text-xs text-slate-500 mt-2">Decreto expedido por la DIAN anualmente.</p>
+          </div>
+        </section>
 
-            <div className="bg-slate-900/50 p-5 rounded-xl border border-slate-700">
-              <label className="block text-sm font-medium text-slate-400 mb-2">Tope Base Retefuente (Compras)</label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={topeRetefuente}
-                  onChange={(e) => setTopeRetefuente(Number(e.target.value))}
-                  className="w-20 bg-transparent text-2xl font-mono font-bold text-rose-400 focus:outline-none"
+        {/* Matriz de Conceptos de Retefuente */}
+        <section className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden">
+          <div className="p-6 border-b border-slate-700 flex justify-between items-center">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              Matriz de Conceptos (Retefuente)
+            </h2>
+            <button 
+              onClick={() => setMostrarFormConcepto(!mostrarFormConcepto)}
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors"
+            >
+              {mostrarFormConcepto ? 'Cancelar' : '+ Agregar Concepto'}
+            </button>
+          </div>
+          
+          {mostrarFormConcepto && (
+            <div className="p-4 bg-slate-900 border-b border-slate-700 flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs text-slate-400 mb-1">Concepto de Retención</label>
+                <input 
+                  type="text" 
+                  value={nuevoConcepto.concepto} 
+                  onChange={e => setNuevoConcepto({...nuevoConcepto, concepto: e.target.value})} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" 
+                  placeholder="Ej. Honorarios" 
                 />
-                <span className="text-slate-500 font-bold">UVT</span>
               </div>
-              <p className="text-xs text-slate-500 mt-2">
-                Equivale a: <span className="text-emerald-400 font-mono">${new Intl.NumberFormat('es-CO').format(uvt * topeRetefuente)}</span> COP
-              </p>
+              <div className="w-32">
+                <label className="block text-xs text-slate-400 mb-1">Base (UVT)</label>
+                <input 
+                  type="number" 
+                  value={nuevoConcepto.baseUvt} 
+                  onChange={e => setNuevoConcepto({...nuevoConcepto, baseUvt: e.target.value})} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" 
+                  placeholder="Ej. 27" 
+                />
+              </div>
+              <div className="w-32">
+                <label className="block text-xs text-slate-400 mb-1">Tarifa (%)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  value={nuevoConcepto.porcentaje} 
+                  onChange={e => setNuevoConcepto({...nuevoConcepto, porcentaje: e.target.value})} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" 
+                  placeholder="Ej. 2.5" 
+                />
+              </div>
+              <button 
+                onClick={handleAgregarConcepto}
+                className="bg-rose-600 hover:bg-rose-500 text-white font-bold py-2 px-4 rounded-lg text-sm"
+              >
+                {editandoConceptoId ? 'Guardar' : 'Agregar'}
+              </button>
             </div>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="bg-slate-900/50 text-xs text-slate-400 uppercase tracking-wider">
+                  <th className="py-4 px-6 font-semibold">Concepto</th>
+                  <th className="py-4 px-6 font-semibold text-right">Base (UVT)</th>
+                  <th className="py-4 px-6 font-semibold text-right">Monto Base (COP)</th>
+                  <th className="py-4 px-6 font-semibold text-right">Tarifa (%)</th>
+                  <th className="py-4 px-6 font-semibold text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/50">
+                {conceptosRetefuente.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-700/30 transition-colors">
+                    <td className="py-4 px-6 font-bold text-white">{item.concepto}</td>
+                    <td className="py-4 px-6 text-right font-mono text-slate-300">{item.baseUvt} UVT</td>
+                    <td className="py-4 px-6 text-right font-mono text-emerald-400">
+                      ${new Intl.NumberFormat('es-CO').format(item.baseUvt * uvt)}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <span className="font-mono font-bold text-rose-400 bg-rose-400/10 px-2 py-1 rounded">
+                        {item.porcentaje}%
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-center flex justify-center gap-2">
+                       <button 
+                         onClick={() => handleEditarConcepto(item)} 
+                         className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded transition-colors" 
+                         title="Editar"
+                       >
+                         ✏️
+                       </button>
+                       <button 
+                         onClick={() => { if(window.confirm(`¿Borrar concepto ${item.concepto}?`)) handleEliminarConcepto(item.id) }} 
+                         className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" 
+                         title="Eliminar"
+                       >
+                         🗑️
+                       </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
 
@@ -73,11 +291,62 @@ const ConfiguracionTributaria = () => {
               <span className="w-2 h-2 rounded-full bg-amber-500"></span>
               Matriz de Territorialidad (ReteICA)
             </h2>
-            <button className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors">
-              + Agregar Municipio
+            <button 
+              onClick={() => setMostrarFormIca(!mostrarFormIca)}
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors"
+            >
+              {mostrarFormIca ? 'Cancelar' : '+ Agregar Municipio'}
             </button>
           </div>
           
+          {mostrarFormIca && (
+            <div className="p-4 bg-slate-900 border-b border-slate-700 flex gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-xs text-slate-400 mb-1">Ciudad / Municipio</label>
+                <input 
+                  type="text" 
+                  value={nuevaCiudad} 
+                  onChange={e => setNuevaCiudad(e.target.value)} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" 
+                  placeholder="Ej. BOGOTÁ" 
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-slate-400 mb-1">Actividad</label>
+                <select 
+                  value={nuevaActividad} 
+                  onChange={e => setNuevaActividad(e.target.value)} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" 
+                >
+                  <option value="">-- Seleccionar --</option>
+                  <option value="Actividad Industrial">Actividad Industrial</option>
+                  <option value="Actividad Comercial">Actividad Comercial</option>
+                  <option value="Actividad de Servicios">Actividad de Servicios</option>
+                  <option value="Obras Civiles y Construcción">Obras Civiles y Construcción</option>
+                  <option value="Sector Financiero">Sector Financiero</option>
+                  <option value="General / Otra">General / Otra</option>
+                </select>
+              </div>
+              <div className="w-32">
+                <label className="block text-xs text-slate-400 mb-1">Tarifa (x Mil)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={nuevaTarifa} 
+                  onChange={e => setNuevaTarifa(e.target.value)} 
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500" 
+                  placeholder="Ej. 11.04" 
+                />
+              </div>
+              <button 
+                onClick={handleAgregarMunicipio}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg text-sm"
+              >
+                {editandoMunicipioId ? 'Guardar' : 'Agregar'}
+              </button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
@@ -85,6 +354,7 @@ const ConfiguracionTributaria = () => {
                   <th className="py-4 px-6 font-semibold">Ciudad / Municipio</th>
                   <th className="py-4 px-6 font-semibold">Actividad Económica</th>
                   <th className="py-4 px-6 font-semibold text-right">Tarifa (x Mil)</th>
+                  <th className="py-4 px-6 font-semibold text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
@@ -97,6 +367,22 @@ const ConfiguracionTributaria = () => {
                         {item.tarifa}
                       </span>
                     </td>
+                    <td className="py-4 px-6 text-center flex justify-center gap-2">
+                       <button 
+                         onClick={() => handleEditarMunicipio(item)} 
+                         className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded transition-colors" 
+                         title="Editar"
+                       >
+                         ✏️
+                       </button>
+                       <button 
+                         onClick={() => { if(window.confirm(`¿Borrar municipio ${item.ciudad}?`)) handleEliminarMunicipio(item.id) }} 
+                         className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" 
+                         title="Eliminar"
+                       >
+                         🗑️
+                       </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -105,7 +391,16 @@ const ConfiguracionTributaria = () => {
         </section>
 
         <div className="flex justify-end">
-          <button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-900/50 transition-all">
+          <button 
+            onClick={() => {
+              // 1. Actualiza multi-tenant (Empresa)
+              actualizarEmpresa(empresaForm);
+              // 2. Actualiza UVTs, Conceptos e ICA
+              actualizarConfigTributaria({ uvt, conceptosRetefuente, tarifasIca });
+              alert('Configuración guardada exitosamente. Las variables se han sincronizado con el motor de impuestos.');
+            }}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-900/50 transition-all"
+          >
             Guardar Configuración
           </button>
         </div>

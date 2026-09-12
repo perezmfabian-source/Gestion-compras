@@ -160,7 +160,7 @@ export function OrdenCompraPDF({ orden = {} }) {
           {/* Fila 1 */}
           <View style={styles.row}>
             <View style={[styles.cell, { width: '70%' }]}>
-              <Text style={styles.mainTitle}>BUSTILLO INGENIERIA SAS</Text>
+              <Text style={styles.mainTitle}>{orden.empresa?.nombre || 'EMPRESA EMISORA SAS'}</Text>
             </View>
             <View style={[styles.cellNoBorder, { width: '30%', padding: 8 }]}>
               <Text style={styles.label}>CODIGO:</Text>
@@ -440,9 +440,9 @@ export function OrdenCompraPDF({ orden = {} }) {
         </View>
 
         <View style={styles.bottomInfo}>
-          <Text>Barrio Bellavista Cra 56 B 7A-45</Text>
-          <Text>Teléfono 6517077 - email: comprasylogisticacartagena@bustilloingenieria.com</Text>
-          <Text>Cartagena de Indias</Text>
+          <Text>{orden.empresa?.direccion || 'Dirección de la empresa'}</Text>
+          <Text>NIT: {orden.empresa?.nit || 'NIT'} - Teléfono 6517077</Text>
+          <Text>Documento exportado por PresuPro</Text>
           <Text style={{ textAlign: 'right', marginTop: 4 }}>Filename C:/calidad/normalización/formatos/compras</Text>
         </View>
 

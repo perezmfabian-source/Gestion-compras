@@ -1,40 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { useComprasStore } from '../store/useComprasStore';
 
 const CRMProveedores = () => {
-  const [proveedores, setProveedores] = useState([
-    {
-      id: 1,
-      razonSocial: 'SUMILEC S.A.',
-      nit: '891.412.809-2',
-      regimen: 'Gran Contribuyente',
-      actividad: 'Comercio al por mayor de materiales de construcción (4663)',
-    },
-    {
-      id: 2,
-      razonSocial: 'DISTRIBUIDORA ELÉCTRICA S.A.S.',
-      nit: '900.123.456-1',
-      regimen: 'Régimen Común',
-      actividad: 'Otras actividades especializadas para la construcción (4390)',
-    }
-  ]);
+  const proveedores = useComprasStore(state => state.proveedores) || [];
+  const guardarProveedor = useComprasStore(state => state.guardarProveedor);
+  const eliminarProveedor = useComprasStore(state => state.eliminarProveedor);
 
+  const fileInputRef = useRef(null);
+  
   const [formData, setFormData] = useState({
     razonSocial: '',
     nit: '',
-    regimen: 'Régimen Común',
-    actividad: ''
+    perfilTributario: 'Regimen Comun',
+    actividad: '',
+    formaPago: 'Contado',
+    documentos: [] // { nombre: '', base64: '' }
   });
+
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.razonSocial || !formData.nit) return;
     
-    setProveedores([
-      ...proveedores, 
-      { id: Date.now(), ...formData }
-    ]);
+    // Guardar o Actualizar
+    guardarProveedor(formData);
     
-    setFormData({ razonSocial: '', nit: '', regimen: 'Régimen Común', actividad: '' });
+    // Resetear form
+    setFormData({ razonSocial: '', nit: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+    setModoEdicion(false);
+  };
+
+  const cargarParaEdicion = (prov) => {
+    // Asegurar retrocompatibilidad con los datos viejos
+    const formAEditar = {
+      ...prov,
+      perfilTributario: prov.perfilTributario || prov.regimen || 'Regimen Comun'
+    };
+    setFormData(formAEditar);
+    setModoEdicion(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    
+    files.forEach(file => {
+      // Validar tamaño aprox < 2MB para no matar localStorage
+      if(file.size > 2 * 1024 * 1024) {
+        alert(`El archivo ${file.name} es demasiado grande. Máximo 2MB permitidos para demo local.`);
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setFormData(prev => ({
+          ...prev,
+          documentos: [...(prev.documentos || []), { nombre: file.name, base64: ev.target.result }]
+        }));
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Clear input
+    if(fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const eliminarDocumento = (index) => {
+    const nuevos = [...(formData.documentos || [])];
+    nuevos.splice(index, 1);
+    setFormData({...formData, documentos: nuevos});
+  };
+
+  const descargarDocumento = (doc) => {
+    const a = document.createElement('a');
+    a.href = doc.base64;
+    a.download = doc.nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -52,9 +96,22 @@ const CRMProveedores = () => {
           
           {/* Formulario de Registro */}
           <div className="lg:col-span-4 bg-slate-800 rounded-2xl shadow-xl border border-slate-700 p-6 h-fit">
-            <h2 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              Nuevo Proveedor
+            <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${modoEdicion ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
+                {modoEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              </div>
+              {modoEdicion && (
+                <button 
+                  onClick={() => {
+                    setFormData({ razonSocial: '', nit: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+                    setModoEdicion(false);
+                  }}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+              )}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -63,7 +120,7 @@ const CRMProveedores = () => {
                   type="text"
                   value={formData.razonSocial}
                   onChange={(e) => setFormData({...formData, razonSocial: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                   placeholder="Ej. Cementos Argos"
                 />
               </div>
@@ -73,43 +130,80 @@ const CRMProveedores = () => {
                 <input
                   type="text"
                   value={formData.nit}
+                  disabled={modoEdicion}
                   onChange={(e) => setFormData({...formData, nit: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  className={`w-full px-4 py-2 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${modoEdicion ? 'bg-slate-800 opacity-70' : 'bg-slate-900'}`}
                   placeholder="Ej. 890900266-9"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Régimen Tributario</label>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Perfil Tributario</label>
                 <select
-                  value={formData.regimen}
-                  onChange={(e) => setFormData({...formData, regimen: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
+                  value={formData.perfilTributario}
+                  onChange={(e) => setFormData({...formData, perfilTributario: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
                 >
-                  <option value="Gran Contribuyente Autorretenedor">Gran Contribuyente Autorretenedor</option>
+                  <option value="Autorretenedor">Gran Contribuyente Autorretenedor</option>
                   <option value="Gran Contribuyente">Gran Contribuyente</option>
-                  <option value="Régimen Común">Régimen Común (Responsable de IVA)</option>
-                  <option value="Régimen Simplificado">Régimen Simplificado (Persona Natural)</option>
-                  <option value="RST">Régimen Simple de Tributación (RST)</option>
+                  <option value="Regimen Comun">Régimen Común (Responsable de IVA)</option>
+                  <option value="Regimen Simplificado">Régimen Simplificado (Persona Natural)</option>
+                  <option value="Regimen Simple">Régimen Simple de Tributación (RST)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Actividad Económica (CIIU)</label>
-                <input
-                  type="text"
-                  value={formData.actividad}
-                  onChange={(e) => setFormData({...formData, actividad: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors"
-                  placeholder="Ej. 4663"
-                />
+                <label className="block text-sm font-medium text-slate-400 mb-1">Condición de Pago</label>
+                <select
+                  value={formData.formaPago}
+                  onChange={(e) => setFormData({...formData, formaPago: e.target.value})}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                >
+                  <option value="Contado">Contado</option>
+                  <option value="Crédito 15 días">Crédito 15 días</option>
+                  <option value="Crédito 30 días">Crédito 30 días</option>
+                  <option value="Crédito 60 días">Crédito 60 días</option>
+                </select>
+              </div>
+
+              {/* Adjuntos */}
+              <div className="pt-2 border-t border-slate-700 mt-4">
+                <label className="block text-sm font-bold text-white mb-2">Documentos Adjuntos</label>
+                
+                {/* Lista de adjuntos */}
+                {formData.documentos && formData.documentos.length > 0 && (
+                  <ul className="mb-3 space-y-2">
+                    {formData.documentos.map((doc, idx) => (
+                      <li key={idx} className="flex items-center justify-between text-xs bg-slate-900 p-2 rounded border border-slate-700">
+                        <span className="truncate max-w-[200px] text-slate-300" title={doc.nombre}>📄 {doc.nombre}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button type="button" onClick={() => descargarDocumento(doc)} className="text-indigo-400 hover:text-indigo-300" title="Descargar">⬇️</button>
+                          <button type="button" onClick={() => eliminarDocumento(idx)} className="text-rose-400 hover:text-rose-300" title="Eliminar">❌</button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="flex items-center justify-center w-full">
+                  <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-600 border-dashed rounded-lg cursor-pointer bg-slate-900/50 hover:bg-slate-800 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <svg className="w-6 h-6 mb-2 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                              <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
+                          </svg>
+                          <p className="text-xs text-slate-400"><span className="font-semibold">Subir RUT, Cámara, Bancario</span></p>
+                          <p className="text-[10px] text-slate-500">PDF (Max 2MB)</p>
+                      </div>
+                      <input id="dropzone-file" type="file" className="hidden" accept=".pdf" multiple onChange={handleFileUpload} ref={fileInputRef} />
+                  </label>
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-emerald-900/50 transition-all"
+                className={`w-full mt-6 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all ${modoEdicion ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/50' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/50'}`}
               >
-                Guardar Proveedor
+                {modoEdicion ? 'Actualizar Proveedor' : 'Guardar Proveedor'}
               </button>
             </form>
           </div>
@@ -121,7 +215,7 @@ const CRMProveedores = () => {
                 <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                Base de Datos Maestra
+                Base de Datos Maestra ({proveedores.length})
               </h2>
             </div>
             
@@ -130,33 +224,52 @@ const CRMProveedores = () => {
                 <thead>
                   <tr className="bg-slate-900/50 text-xs text-slate-400 uppercase tracking-wider">
                     <th className="py-4 px-6 font-semibold">Razón Social / NIT</th>
-                    <th className="py-4 px-6 font-semibold">Perfil Tributario</th>
-                    <th className="py-4 px-6 font-semibold">Actividad (ICA)</th>
-                    <th className="py-4 px-6 text-center font-semibold">Estado</th>
+                    <th className="py-4 px-6 font-semibold">Perfil / Pago</th>
+                    <th className="py-4 px-6 font-semibold text-center">Documentos</th>
+                    <th className="py-4 px-6 text-center font-semibold">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-700/50">
                   {proveedores.map((prov) => (
-                    <tr key={prov.id} className="hover:bg-slate-700/30 transition-colors">
+                    <tr key={prov.nit} className="hover:bg-slate-700/30 transition-colors">
                       <td className="py-4 px-6">
                         <div className="font-bold text-white">{prov.razonSocial}</div>
                         <div className="text-xs text-slate-500 font-mono mt-0.5">{prov.nit}</div>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                          {prov.regimen}
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-1">
+                          {prov.regimen || prov.perfilTributario}
                         </span>
-                      </td>
-                      <td className="py-4 px-6 text-slate-400 text-xs">
-                        {prov.actividad || 'No definida'}
+                        <div className="text-[10px] uppercase font-bold text-slate-500">{prov.formaPago || 'Contado'}</div>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide bg-emerald-500/10 text-emerald-400">
-                          Activo
-                        </span>
+                        {prov.documentos && prov.documentos.length > 0 ? (
+                          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/80 border border-slate-700 text-slate-300 text-xs font-semibold" title={prov.documentos.map(d=>d.nombre).join(', ')}>
+                            📄 {prov.documentos.length} Docs
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-600 italic">Sin adjuntos</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
+                            ✏️
+                          </button>
+                          <button onClick={() => { if(window.confirm('¿Borrar este proveedor?')) eliminarProveedor(prov.nit) }} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
+                            🗑️
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
+                  {proveedores.length === 0 && (
+                    <tr>
+                      <td colSpan="4" className="py-8 text-center text-slate-500">
+                        No hay proveedores registrados.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
