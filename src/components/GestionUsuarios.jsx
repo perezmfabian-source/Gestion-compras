@@ -1,0 +1,343 @@
+import React, { useState } from 'react';
+import { useAuthStore } from '../store/useAuthStore';
+
+const GestionUsuarios = () => {
+  const { 
+    usuarioActual, 
+    usuarios, 
+    modoMantenimiento, 
+    mensajeMantenimiento,
+    toggleMantenimiento,
+    agregarUsuario,
+    actualizarUsuario,
+    eliminarUsuario
+  } = useAuthStore();
+
+  const [activeTab, setActiveTab] = useState('Administración');
+  const [mantenimientoTexto, setMantenimientoTexto] = useState(mensajeMantenimiento);
+  
+  // Estados para Modal de Crear/Editar
+  const [showModal, setShowModal] = useState(false);
+  const [usuarioEditando, setUsuarioEditando] = useState(null);
+  const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA' });
+
+  const esAdmin = usuarioActual?.rol === 'ADMINISTRADOR';
+
+  const handleGuardarMantenimiento = () => {
+    toggleMantenimiento(!modoMantenimiento, mantenimientoTexto);
+    alert(`Modo mantenimiento ${!modoMantenimiento ? 'Activado' : 'Desactivado'} exitosamente.`);
+  };
+
+  const abrirModalNuevo = () => {
+    setUsuarioEditando(null);
+    setFormData({ nombre: '', correo: '', rol: 'ANALISTA' });
+    setShowModal(true);
+  };
+
+  const abrirModalEditar = (u) => {
+    setUsuarioEditando(u.id);
+    setFormData({ nombre: u.nombre, correo: u.correo, rol: u.rol });
+    setShowModal(true);
+  };
+
+  const guardarUsuario = () => {
+    if (!formData.nombre || !formData.correo) return;
+    
+    if (usuarioEditando) {
+      actualizarUsuario(usuarioEditando, formData);
+    } else {
+      agregarUsuario(formData);
+    }
+    setShowModal(false);
+  };
+
+  const toggleEstadoUsuario = (u) => {
+    if (u.id === usuarioActual.id) {
+      alert('No puedes desactivar tu propio usuario.');
+      return;
+    }
+    const nuevoEstado = u.estado === 'ACTIVO' ? 'INACTIVO' : 'ACTIVO';
+    actualizarUsuario(u.id, { estado: nuevoEstado });
+  };
+
+  const handleEliminar = (u) => {
+    if (u.id === usuarioActual.id) {
+      alert('No puedes eliminar tu propio usuario.');
+      return;
+    }
+    if (window.confirm(`¿Estás seguro de eliminar a ${u.nombre}?`)) {
+      eliminarUsuario(u.id);
+    }
+  };
+
+  if (!esAdmin && activeTab === 'Administración') {
+    // Si no es admin, forzar a Mi Perfil
+    setActiveTab('Mi Perfil');
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0F172A] text-slate-200 p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Cabecera */}
+        <header className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-extrabold text-white tracking-tight">Gestión de Usuario</h1>
+            <p className="text-slate-400 mt-1 text-sm">Gestiona tu información personal y configuración de cuenta</p>
+          </div>
+          <button 
+            onClick={() => useAuthStore.getState().cerrarSesion()}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-semibold rounded-lg transition-colors text-slate-300"
+          >
+            Cerrar Sesión
+          </button>
+        </header>
+
+        {/* Pestañas */}
+        <div className="flex border-b border-slate-700/50 mt-8">
+          <button 
+            onClick={() => setActiveTab('Mi Perfil')}
+            className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+              activeTab === 'Mi Perfil' 
+                ? 'border-blue-500 text-blue-400' 
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            👤 Mi Perfil
+          </button>
+          {esAdmin && (
+            <button 
+              onClick={() => setActiveTab('Administración')}
+              className={`px-6 py-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${
+                activeTab === 'Administración' 
+                  ? 'border-blue-500 text-blue-400' 
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              🛡️ Administración
+            </button>
+          )}
+        </div>
+
+        {/* Contenido de Mi Perfil */}
+        {activeTab === 'Mi Perfil' && (
+          <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg">
+            <h2 className="text-lg font-bold text-white mb-4">Información de Cuenta</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Nombre Completo</label>
+                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium">
+                  {usuarioActual.nombre}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Correo Electrónico</label>
+                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium">
+                  {usuarioActual.correo}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Rol en el Sistema</label>
+                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-blue-400 font-bold">
+                  {usuarioActual.rol}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Estado</label>
+                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 font-bold">
+                  {usuarioActual.estado}
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 mt-6">
+              Para solicitar cambios en tu perfil o contraseña, comunícate con el Administrador del sistema.
+            </p>
+          </div>
+        )}
+
+        {/* Contenido de Administración */}
+        {activeTab === 'Administración' && esAdmin && (
+          <div className="space-y-6">
+            
+            {/* Panel de Mantenimiento */}
+            <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg">
+              <h2 className="text-sm font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wide">
+                ⚙️ CONFIGURACIÓN DEL SISTEMA (MODO MANTENIMIENTO)
+              </h2>
+              <p className="text-xs text-slate-400 mt-1 mb-5">
+                Activa este modo para bloquear el acceso a todos los usuarios no administradores mientras realizas cambios en el sistema. Los cambios aplican en tiempo real.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-end gap-4">
+                <div className="w-48 shrink-0">
+                  <label className="block text-xs text-slate-400 mb-1">Estado</label>
+                  <button 
+                    onClick={handleGuardarMantenimiento}
+                    className={`w-full py-2.5 px-4 rounded-lg font-bold text-sm transition-colors border ${
+                      modoMantenimiento 
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 hover:bg-rose-500/30' 
+                        : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                    }`}
+                  >
+                    {modoMantenimiento ? 'Mantenimiento Activo' : 'Mantenimiento Inactivo'}
+                  </button>
+                </div>
+                
+                <div className="flex-1 w-full">
+                  <label className="block text-xs text-slate-400 mb-1">Mensaje para los usuarios</label>
+                  <input 
+                    type="text" 
+                    value={mantenimientoTexto}
+                    onChange={(e) => setMantenimientoTexto(e.target.value)}
+                    className="w-full bg-[#0F172A] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-slate-300 focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+                
+                <button 
+                  onClick={handleGuardarMantenimiento}
+                  className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm rounded-lg transition-colors shrink-0"
+                >
+                  Guardar Mensaje
+                </button>
+              </div>
+            </div>
+
+            {/* Base de Usuarios */}
+            <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-sm font-bold text-blue-400 flex items-center gap-2 uppercase tracking-wide">
+                  👥 Base de Usuarios
+                </h2>
+                <button 
+                  onClick={abrirModalNuevo}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg transition-colors"
+                >
+                  + Nuevo Usuario
+                </button>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead>
+                    <tr className="bg-slate-800 text-xs text-slate-300 font-semibold border-b border-slate-700">
+                      <th className="py-3 px-4 rounded-tl-lg">Nombre</th>
+                      <th className="py-3 px-4">Correo</th>
+                      <th className="py-3 px-4 text-center">Rol</th>
+                      <th className="py-3 px-4 text-center">Estado / Aprobar</th>
+                      <th className="py-3 px-4 text-center rounded-tr-lg">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800">
+                    {usuarios.map(u => (
+                      <tr key={u.id} className="hover:bg-slate-800/50 transition-colors">
+                        <td className="py-4 px-4 font-bold text-slate-200">{u.nombre}</td>
+                        <td className="py-4 px-4 text-slate-400">{u.correo}</td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-full text-[10px] font-bold tracking-wider">
+                            {u.rol}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <button 
+                            onClick={() => toggleEstadoUsuario(u)}
+                            className={`px-3 py-1 rounded text-xs font-bold border transition-colors ${
+                              u.estado === 'ACTIVO' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20' 
+                                : 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20'
+                            }`}
+                          >
+                            {u.estado}
+                          </button>
+                        </td>
+                        <td className="py-4 px-4 text-center flex justify-center gap-2">
+                          <button className="p-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20 transition-colors" title="Permisos">
+                            🛡️
+                          </button>
+                          <button onClick={() => abrirModalEditar(u)} className="p-2 bg-blue-500/10 text-blue-400 rounded hover:bg-blue-500/20 transition-colors" title="Editar">
+                            ✏️
+                          </button>
+                          <button onClick={() => handleEliminar(u)} className="p-2 bg-slate-700/50 text-slate-400 rounded hover:bg-slate-700 transition-colors" title="Eliminar">
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </div>
+
+      {/* Modal Crear/Editar Usuario */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl w-full max-w-md border border-slate-700 overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-700 bg-slate-900/50">
+              <h3 className="text-lg font-bold text-white">
+                {usuarioEditando ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Nombre Completo</label>
+                <input 
+                  type="text" 
+                  value={formData.nombre}
+                  onChange={e => setFormData({...formData, nombre: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Correo Electrónico</label>
+                <input 
+                  type="email" 
+                  value={formData.correo}
+                  onChange={e => setFormData({...formData, correo: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Rol</label>
+                <select 
+                  value={formData.rol}
+                  onChange={e => setFormData({...formData, rol: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="ANALISTA">ANALISTA</option>
+                  <option value="PRESUPUESTADOR">PRESUPUESTADOR</option>
+                  <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                </select>
+              </div>
+              {!usuarioEditando && (
+                <p className="text-xs text-amber-500 mt-2">
+                  La contraseña por defecto para nuevos usuarios es: <strong>123</strong>
+                </p>
+              )}
+            </div>
+            <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 rounded-lg text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={guardarUsuario}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-900/20"
+              >
+                Guardar Usuario
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default GestionUsuarios;

@@ -1,13 +1,18 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { ShoppingCart, Users, Settings, Building2, Wallet } from 'lucide-react';
+import { ShoppingCart, Users, Settings, Building2, Wallet, UserCog } from 'lucide-react';
+import { useAuthStore } from '../store/useAuthStore';
 
 const Layout = () => {
+  const usuarioActual = useAuthStore(state => state.usuarioActual);
+  const cerrarSesion = useAuthStore(state => state.cerrarSesion);
+
   const navItems = [
     { path: '/ordenes', label: 'Nueva Orden', icon: ShoppingCart },
     { path: '/cuentas-por-pagar', label: 'Cuentas por Pagar', icon: Wallet },
     { path: '/proveedores', label: 'CRM Proveedores', icon: Users },
-    { path: '/configuracion', label: 'Config. Tributaria', icon: Settings }
+    { path: '/configuracion', label: 'Config. Tributaria', icon: Settings },
+    { path: '/usuarios', label: 'Control de Usuario', icon: UserCog }
   ];
 
   return (
@@ -15,11 +20,13 @@ const Layout = () => {
       {/* Sidebar Corporativo */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
         <div className="p-6 border-b border-slate-800">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-blue-400" />
-            PresuPro
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Módulo de Compras</p>
+          <div className="flex items-center gap-3">
+            <img src="/presupro-logo.png" alt="PresuPro Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
+            <h1 className="text-2xl font-bold tracking-tight">
+              PresuPro
+            </h1>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2 uppercase tracking-widest font-bold">Módulo de Compras</p>
         </div>
         
         <nav className="flex-1 py-6 px-3 space-y-2">
@@ -40,6 +47,36 @@ const Layout = () => {
             </NavLink>
           ))}
         </nav>
+
+        {/* Perfil del Usuario */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
+              {usuarioActual?.nombre?.charAt(0) || 'U'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white truncate">{usuarioActual?.nombre}</p>
+              <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider">{usuarioActual?.rol}</p>
+            </div>
+          </div>
+          <button 
+            onClick={cerrarSesion}
+            className="w-full flex justify-center py-2 px-4 border border-slate-700 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
+
+        {/* Branding NEXATECH */}
+        <div className="p-4 border-t border-slate-800 text-center">
+          <div className="flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
+            <img src="/nexatech-logo.png" alt="Nexatech Logo" className="h-8 object-contain mb-2" />
+            <p className="text-slate-400 text-[10px] leading-tight mt-1">
+              Producto digital desarrollado<br />
+              por <span className="text-slate-300 font-bold">Nexatech S.A.S.</span>
+            </p>
+          </div>
+        </div>
       </aside>
 
       {/* Área de Contenido Principal (Aquí carga la orden de compra) */}
