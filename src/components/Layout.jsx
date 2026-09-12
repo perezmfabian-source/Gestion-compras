@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { ShoppingCart, Users, Settings, Building2 } from 'lucide-react';
+import { ShoppingCart, Users, Settings, Building2, Wallet } from 'lucide-react';
 
 const Layout = () => {
   const navItems = [
     { path: '/ordenes', label: 'Nueva Orden', icon: ShoppingCart },
+    { path: '/cuentas-por-pagar', label: 'Cuentas por Pagar', icon: Wallet },
     { path: '/proveedores', label: 'CRM Proveedores', icon: Users },
     { path: '/configuracion', label: 'Config. Tributaria', icon: Settings }
   ];

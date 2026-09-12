@@ -237,6 +237,12 @@ export const useComprasStore = create(
           requiereAutorizacionSobrecosto: ordenJSON.items.some(itemTieneSobrecosto)
         };
       }),
+
+      actualizarEstadoPagoOrden: (consecutivo, nuevoEstado) => set((state) => ({
+        historialOrdenes: state.historialOrdenes.map(o => 
+          o.consecutivo === consecutivo ? { ...o, estadoPago: nuevoEstado } : o
+        )
+      })),
       
       eliminarOrden: (consecutivo) => set((state) => {
         return {
