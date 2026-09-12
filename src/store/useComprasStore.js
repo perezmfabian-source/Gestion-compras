@@ -57,10 +57,18 @@ export const useComprasStore = create(
       configTributaria: {
         uvt: 52289,
         conceptosRetefuente: [
-          { id: 1, concepto: 'Compras Generales (Declarantes)', baseUvt: 27, porcentaje: 2.5 },
-          { id: 2, concepto: 'Compras Generales (No Declarantes)', baseUvt: 27, porcentaje: 3.5 },
-          { id: 3, concepto: 'Servicios Generales', baseUvt: 4, porcentaje: 4.0 },
-          { id: 4, concepto: 'Honorarios y Consultoría', baseUvt: 0, porcentaje: 11.0 },
+          { id: 1, concepto: 'Compras generales (declarantes)', baseUvt: 27, porcentaje: 2.5 },
+          { id: 2, concepto: 'Compras generales (no declarantes)', baseUvt: 27, porcentaje: 3.5 },
+          { id: 3, concepto: 'Servicios generales (declarantes)', baseUvt: 4, porcentaje: 4.0 },
+          { id: 4, concepto: 'Servicios generales (no declarantes)', baseUvt: 4, porcentaje: 6.0 },
+          { id: 5, concepto: 'Honorarios y comisiones (personas jurídicas)', baseUvt: 0, porcentaje: 11.0 },
+          { id: 6, concepto: 'Honorarios y comisiones (personas naturales)', baseUvt: 0, porcentaje: 10.0 },
+          { id: 7, concepto: 'Servicios de transporte de carga', baseUvt: 4, porcentaje: 1.0 },
+          { id: 8, concepto: 'Contratos de construcción y urbanización', baseUvt: 27, porcentaje: 2.0 },
+          { id: 9, concepto: 'Arrendamiento de bienes muebles', baseUvt: 0, porcentaje: 4.0 },
+          { id: 10, concepto: 'Arrendamiento de bienes inmuebles (declarantes)', baseUvt: 27, porcentaje: 3.5 },
+          { id: 11, concepto: 'Servicios de hoteles y restaurantes', baseUvt: 4, porcentaje: 3.5 },
+          { id: 12, concepto: 'Servicios prestados por empresas de vigilancia y aseo', baseUvt: 4, porcentaje: 2.0 },
         ],
         tarifasIca: [
           { id: 1, ciudad: 'CARTAGENA', actividad: 'Obras Civiles', tarifa: '9.66', estado: 'Activo' },

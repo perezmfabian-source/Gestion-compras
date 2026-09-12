@@ -187,12 +187,25 @@ const ConfiguracionTributaria = () => {
               <span className="w-2 h-2 rounded-full bg-rose-500"></span>
               Matriz de Conceptos (Retefuente)
             </h2>
-            <button 
-              onClick={() => setMostrarFormConcepto(!mostrarFormConcepto)}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors"
-            >
-              {mostrarFormConcepto ? 'Cancelar' : '+ Agregar Concepto'}
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  if(window.confirm('¿Deseas sobreescribir tus conceptos actuales con la tabla oficial de la DIAN?')) {
+                    const tablaDian = useComprasStore.getState().configTributaria.conceptosRetefuente || [];
+                    if (tablaDian.length > 0) setConceptosRetefuente(tablaDian);
+                  }
+                }}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-bold rounded-lg transition-colors border border-slate-600"
+              >
+                Cargar Tabla DIAN
+              </button>
+              <button 
+                onClick={() => setMostrarFormConcepto(!mostrarFormConcepto)}
+                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-colors"
+              >
+                {mostrarFormConcepto ? 'Cancelar' : '+ Agregar Concepto'}
+              </button>
+            </div>
           </div>
           
           {mostrarFormConcepto && (
