@@ -1,84 +1,172 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { supabase } from '../lib/supabaseClient';
 
 const usuariosIniciales = [
-  { id: 1, nombre: 'ADMINISTRADOR', correo: 'admin@empresa.com', rol: 'ADMINISTRADOR', estado: 'ACTIVO', password: 'admin' },
-  { id: 2, nombre: 'ANALISTA COMPRAS', correo: 'analista@empresa.com', rol: 'ANALISTA', estado: 'ACTIVO', password: '123' },
-  { id: 3, nombre: 'PRESUPUESTADOR', correo: 'proyectos@empresa.com', rol: 'PRESUPUESTADOR', estado: 'ACTIVO', password: '123' }
+  { id: '1', nombre: 'ADMINISTRADOR', correo: 'admin@empresa.com', rol: 'ADMINISTRADOR', estado: 'ACTIVO', password: 'admin' },
+  { id: '2', nombre: 'ANALISTA COMPRAS', correo: 'analista@empresa.com', rol: 'ANALISTA', estado: 'ACTIVO', password: '123' },
+  { id: '3', nombre: 'PRESUPUESTADOR', correo: 'proyectos@empresa.com', rol: 'PRESUPUESTADOR', estado: 'ACTIVO', password: '123' }
 ];
 
-export const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      usuarioActual: null,
-      usuarios: usuariosIniciales,
-      modoMantenimiento: false,
-      mensajeMantenimiento: 'El administrador está realizando actualizaciones en la plataforma para mejorar tu experiencia. Por favor, intenta ingresar más tarde.',
+export const useAuthStore = create((set, get) => ({
+  usuarioActual: null,
+  usuarios: usuariosIniciales,
+  modoMantenimiento: false,
+  mensajeMantenimiento: 'El administrador está realizando actualizaciones en la plataforma para mejorar tu experiencia. Por favor, intenta ingresar más tarde.',
+  isInitialized: false,
 
-      iniciarSesion: (correo, password) => {
-        const { usuarios, modoMantenimiento } = get();
-        const usuarioEncontrado = usuarios.find(u => u.correo.toLowerCase() === correo.toLowerCase() && u.password === password);
-        
-        if (!usuarioEncontrado) {
-          return { exito: false, mensaje: 'Credenciales incorrectas' };
-        }
-
-        if (usuarioEncontrado.estado !== 'ACTIVO') {
-          return { exito: false, mensaje: 'Tu cuenta está inactiva' };
-        }
-
-        // Si está en mantenimiento, solo los admin pueden entrar
-        if (modoMantenimiento && usuarioEncontrado.rol !== 'ADMINISTRADOR') {
-          return { exito: false, mensaje: 'Mantenimiento' };
-        }
-
-        set({ usuarioActual: usuarioEncontrado });
-        return { exito: true };
-      },
-
-      cerrarSesion: () => set({ usuarioActual: null }),
-
-      actualizarPerfil: (datos) => set((state) => {
-        if (!state.usuarioActual) return state;
-        
-        const usuarioActualizado = { ...state.usuarioActual, ...datos };
-        
-        return {
-          usuarioActual: usuarioActualizado,
-          usuarios: state.usuarios.map(u => u.id === usuarioActualizado.id ? usuarioActualizado : u)
-        };
-      }),
-
-      // --- Funciones de Administración ---
-
-      toggleMantenimiento: (estado, mensaje) => set({ 
-        modoMantenimiento: estado, 
-        mensajeMantenimiento: mensaje 
-      }),
-
-      agregarUsuario: (nuevoUsuario) => set((state) => ({
-        usuarios: [
-          ...state.usuarios, 
-          { 
-            ...nuevoUsuario, 
-            id: Date.now(), 
-            estado: 'ACTIVO',
-            password: '123' // Contraseña por defecto para pruebas
-          }
-        ]
-      })),
-
-      actualizarUsuario: (id, datos) => set((state) => ({
-        usuarios: state.usuarios.map(u => u.id === id ? { ...u, ...datos } : u)
-      })),
-
-      eliminarUsuario: (id) => set((state) => ({
-        usuarios: state.usuarios.filter(u => u.id !== id)
-      }))
-    }),
-    {
-      name: 'auth-storage',
-      storage: createJSONStorage(() => localStorage),
+  initAuth: async () => {
+    try {
+      const { data, error } = await supabase.from('usuarios').select('*');
+      if (error) {
+        console.warn('Error fetching usuarios from Supabase, using mock data:', error);
+        set({ isInitialized: true });
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Map DB fields to store fields
+        const users = data.map(u => ({
+          id: u.id,
+          nombre: u.nombre,
+          correo: u.email,
+          rol: u.rol,
+          estado: u.estado,
+          password: u.password || '123' // Fallback
+        }));
+        set({ usuarios: users, isInitialized: true });
+      } else {
+        set({ isInitialized: true });
+      }
+    } catch (err) {
+      console.warn('Network error fetching auth:', err);
+      set({ isInitialized: true });
     }
-  )
-);
+  },
+
+  iniciarSesion: (correo, password) => {
+    const { usuarios, modoMantenimiento } = get();
+    const usuarioEncontrado = usuarios.find(u => u.correo.toLowerCase() === correo.toLowerCase() && u.password === password);
+    
+    if (!usuarioEncontrado) {
+      return { exito: false, mensaje: 'Credenciales incorrectas' };
+    }
+
+    if (usuarioEncontrado.estado !== 'ACTIVO') {
+      return { exito: false, mensaje: 'Tu cuenta está inactiva' };
+    }
+
+    // Si está en mantenimiento, solo los admin pueden entrar
+    if (modoMantenimiento && usuarioEncontrado.rol !== 'ADMINISTRADOR') {
+      return { exito: false, mensaje: 'Mantenimiento' };
+    }
+
+    // Set user in local storage to keep session alive across refreshes temporarily (or we could rely on supabase auth later)
+    localStorage.setItem('auth_session', JSON.stringify(usuarioEncontrado));
+    set({ usuarioActual: usuarioEncontrado });
+    return { exito: true };
+  },
+
+  restaurarSesion: () => {
+    const session = localStorage.getItem('auth_session');
+    if (session) {
+      try {
+        set({ usuarioActual: JSON.parse(session) });
+      } catch (e) {
+        localStorage.removeItem('auth_session');
+      }
+    }
+  },
+
+  cerrarSesion: () => {
+    localStorage.removeItem('auth_session');
+    set({ usuarioActual: null });
+  },
+
+  actualizarPerfil: async (datos) => {
+    const { usuarioActual, usuarios } = get();
+    if (!usuarioActual) return;
+    
+    const usuarioActualizado = { ...usuarioActual, ...datos };
+    
+    // Optimistic update
+    set({
+      usuarioActual: usuarioActualizado,
+      usuarios: usuarios.map(u => u.id === usuarioActualizado.id ? usuarioActualizado : u)
+    });
+    localStorage.setItem('auth_session', JSON.stringify(usuarioActualizado));
+
+    // Supabase update
+    try {
+      await supabase.from('usuarios').update({
+        nombre: usuarioActualizado.nombre,
+        rol: usuarioActualizado.rol,
+        estado: usuarioActualizado.estado
+      }).eq('id', usuarioActualizado.id);
+    } catch (e) {
+      console.error('Failed to sync to Supabase', e);
+    }
+  },
+
+  // --- Funciones de Administración ---
+
+  toggleMantenimiento: (estado, mensaje) => set({ 
+    modoMantenimiento: estado, 
+    mensajeMantenimiento: mensaje 
+  }),
+
+  agregarUsuario: async (nuevoUsuario) => {
+    const idTemp = Date.now().toString();
+    const usuario = {
+      ...nuevoUsuario,
+      id: idTemp,
+      estado: 'Activo',
+      password: '123'
+    };
+
+    // Optimistic
+    set((state) => ({ usuarios: [...state.usuarios, usuario] }));
+
+    try {
+      const { data, error } = await supabase.from('usuarios').insert([{
+        email: nuevoUsuario.correo,
+        nombre: nuevoUsuario.nombre,
+        rol: nuevoUsuario.rol,
+        estado: 'Activo'
+      }]).select();
+
+      if (!error && data && data.length > 0) {
+        // Update with real ID
+        set((state) => ({
+          usuarios: state.usuarios.map(u => u.id === idTemp ? { ...u, id: data[0].id } : u)
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  actualizarUsuario: async (id, datos) => {
+    set((state) => ({
+      usuarios: state.usuarios.map(u => u.id === id ? { ...u, ...datos } : u)
+    }));
+
+    try {
+      const updateData = {};
+      if (datos.nombre) updateData.nombre = datos.nombre;
+      if (datos.correo) updateData.email = datos.correo;
+      if (datos.rol) updateData.rol = datos.rol;
+      if (datos.estado) updateData.estado = datos.estado;
+      
+      await supabase.from('usuarios').update(updateData).eq('id', id);
+    } catch (e) {}
+  },
+
+  eliminarUsuario: async (id) => {
+    set((state) => ({
+      usuarios: state.usuarios.filter(u => u.id !== id)
+    }));
+    try {
+      await supabase.from('usuarios').delete().eq('id', id);
+    } catch (e) {}
+  }
+}));
