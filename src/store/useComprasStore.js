@@ -89,10 +89,12 @@ export const useComprasStore = create((set, get) => ({
           consecutivo: o.consecutivo,
           fecha: o.fecha,
           estadoPago: o.estado_pago,
+          estadoLogistico: o.estado_logistico || 'Pendiente',
           proveedor: { nit: o.proveedor_nit },
           obra: { nombre: o.centro_costo_id },
           totales: { total: o.total_neto },
-          _rawMetadatos: o.raw_metadatos || {}
+          _rawMetadatos: o.raw_metadatos || {},
+          items: o.items || o.raw_metadatos?.items || []
         })) });
       }
 
@@ -391,6 +393,7 @@ export const useComprasStore = create((set, get) => ({
         consecutivo: ordenJSON.consecutivo,
         fecha: ordenJSON.fecha,
         estado_pago: ordenJSON.estadoPago || 'Pendiente',
+        estado_logistico: ordenJSON.estadoLogistico || 'Pendiente',
         proveedor_nit: ordenJSON.proveedor?.nit,
         centro_costo_id: ordenJSON.obra?.nombre,
         subtotal: ordenJSON.totales?.subtotal,
@@ -399,7 +402,7 @@ export const useComprasStore = create((set, get) => ({
         reteica: ordenJSON.totales?.retenciones?.reteica,
         reteiva: ordenJSON.totales?.retenciones?.reteiva,
         total_neto: ordenJSON.totales?.total,
-        raw_metadatos: ordenJSON._rawMetadatos
+        raw_metadatos: { ...ordenJSON._rawMetadatos, items: ordenJSON.items }
       }], { onConflict: 'consecutivo' });
     } catch(e) {}
   },
