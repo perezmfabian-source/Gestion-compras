@@ -23,8 +23,8 @@ const Layout = () => {
       <aside className="w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <img src="/presupro-logo.png" alt="PresuPro Logo" className="w-10 h-10 object-contain rounded-xl shadow-lg" />
-            <h1 className="text-2xl font-bold tracking-tight">
+            <img src="/presupro-logo.png" alt="PresuPro Logo" className="w-14 h-14 object-contain rounded-xl shadow-lg" />
+            <h1 className="text-3xl font-bold tracking-tight">
               PresuPro
             </h1>
           </div>
