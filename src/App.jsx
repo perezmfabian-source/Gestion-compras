@@ -8,6 +8,7 @@ import CuentasPorPagar from './components/CuentasPorPagar';
 import Login from './components/Login';
 import GestionUsuarios from './components/GestionUsuarios';
 import Almacen from './components/Almacen';
+import RecepcionFacturas from './components/RecepcionFacturas';
 import { useAuthStore } from './store/useAuthStore';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route path="ordenes" element={<GeneradorOrdenCompra />} />
           <Route path="almacen" element={<Almacen />} />
+          <Route path="facturas" element={<RecepcionFacturas />} />
           <Route path="proveedores" element={<CRMProveedores />} />
           <Route path="configuracion" element={<ConfiguracionTributaria />} />
           <Route path="cuentas-por-pagar" element={<CuentasPorPagar />} />

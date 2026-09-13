@@ -53,6 +53,74 @@ export const useComprasStore = create(
       historialOrdenes: [],
       entradasAlmacen: [], // Historial de remisiones y recepciones en obra
       proveedores: Object.values(MAESTRO_PROVEEDORES),
+      facturasCausadas: [], // Nuevo historial de facturas causadas
+
+      // --- KARDEX E INVENTARIO ---
+      inventario: [], // Maestro de Saldos
+      movimientosInventario: [], // KARDEX detallado (ENTRADAS y SALIDAS)
+
+      registrarMovimientoInventario: (movimiento) => set((state) => {
+        // movimiento: { tipo: 'ENTRADA' | 'SALIDA', sku, descripcion, unidad, cantidad, costoUnitario, referencia, responsable }
+        const nuevoMov = { ...movimiento, idMovimiento: `MOV-${Date.now()}-${Math.floor(Math.random() * 1000)}`, fecha: new Date().toISOString() };
+        
+        let nuevoInventario = [...state.inventario];
+        let itemIndex = nuevoInventario.findIndex(i => i.sku === movimiento.sku || i.descripcion === movimiento.descripcion);
+
+        let itemActual = itemIndex >= 0 ? { ...nuevoInventario[itemIndex] } : {
+          id: `INV-${Date.now()}`,
+          sku: movimiento.sku || `SKU-${Date.now().toString().slice(-4)}`,
+          descripcion: movimiento.descripcion,
+          unidad: movimiento.unidad,
+          entradas: 0,
+          salidas: 0,
+          saldo: 0,
+          costoPromedio: 0,
+          valorTotal: 0
+        };
+
+        const qty = Number(movimiento.cantidad) || 0;
+        const cstUnit = Number(movimiento.costoUnitario) || 0;
+
+        if (movimiento.tipo === 'ENTRADA') {
+          const valorActual = itemActual.saldo * itemActual.costoPromedio;
+          const valorNuevo = qty * cstUnit;
+          
+          itemActual.entradas += qty;
+          itemActual.saldo += qty;
+          
+          if (itemActual.saldo > 0) {
+            itemActual.costoPromedio = (valorActual + valorNuevo) / itemActual.saldo;
+          }
+          itemActual.valorTotal = itemActual.saldo * itemActual.costoPromedio;
+        } else if (movimiento.tipo === 'SALIDA') {
+          itemActual.salidas += qty;
+          itemActual.saldo -= qty;
+          // El costo promedio no cambia en las salidas
+          itemActual.valorTotal = itemActual.saldo * itemActual.costoPromedio;
+        }
+
+        if (itemIndex >= 0) {
+          nuevoInventario[itemIndex] = itemActual;
+        } else {
+          nuevoInventario.push(itemActual);
+        }
+
+        return {
+          inventario: nuevoInventario,
+          movimientosInventario: [nuevoMov, ...state.movimientosInventario]
+        };
+      }),
+
+      causarFactura: (factura) => set((state) => ({
+        facturasCausadas: [
+          ...state.facturasCausadas,
+          { ...factura, idFacturaInterno: Date.now().toString() }
+        ]
+      })),
+
+      eliminarFacturaCausada: (idInterno) => set((state) => ({
+        facturasCausadas: state.facturasCausadas.filter(f => f.idFacturaInterno !== idInterno)
+      })),
 
       // --- CONFIGURACIÓN TRIBUTARIA GLOBAL ---
       configTributaria: {
@@ -253,16 +321,33 @@ export const useComprasStore = create(
         )
       })),
 
-      registrarEntradaAlmacen: (nuevaEntrada) => set((state) => {
-        const entradasActualizadas = [
-          { ...nuevaEntrada, idEntrada: `ENT-${Date.now()}`, fechaRecepcion: new Date().toISOString() },
-          ...state.entradasAlmacen
-        ];
+      registrarEntradaAlmacen: (nuevaEntrada) => {
+        // Ejecutamos primero la lógica KARDEX para cada item
+        const registrarKardex = get().registrarMovimientoInventario;
+        nuevaEntrada.items.forEach(item => {
+          registrarKardex({
+            tipo: 'ENTRADA',
+            sku: item.codigo || '',
+            descripcion: item.descripcion,
+            unidad: item.unidad,
+            cantidad: item.cantidadRecibida,
+            costoUnitario: item.precioUnitario || 0, // asumiendo que viene en la entrada
+            referencia: nuevaEntrada.ordenConsecutivo,
+            responsable: nuevaEntrada.recepcionista || 'Almacén'
+          });
+        });
 
-        return {
-          entradasAlmacen: entradasActualizadas
-        };
-      }),
+        set((state) => {
+          const entradasActualizadas = [
+            { ...nuevaEntrada, idEntrada: `ENT-${Date.now()}`, fechaRecepcion: new Date().toISOString() },
+            ...state.entradasAlmacen
+          ];
+  
+          return {
+            entradasAlmacen: entradasActualizadas
+          };
+        });
+      },
       
       eliminarOrden: (consecutivo) => set((state) => {
         return {
