@@ -51,7 +51,7 @@ export const useAuthStore = create((set, get) => ({
       return { exito: false, mensaje: 'Credenciales incorrectas' };
     }
 
-    if (usuarioEncontrado.estado !== 'ACTIVO') {
+    if (usuarioEncontrado.estado?.toUpperCase() !== 'ACTIVO') {
       return { exito: false, mensaje: 'Tu cuenta está inactiva' };
     }
 
