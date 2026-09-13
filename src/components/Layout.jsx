@@ -8,14 +8,17 @@ const Layout = () => {
   const cerrarSesion = useAuthStore(state => state.cerrarSesion);
 
   const navItems = [
-    { path: '/ordenes', label: 'Nueva Orden', icon: ShoppingCart },
-    { path: '/almacen', label: 'Almacén (Recepción)', icon: Package },
-    { path: '/facturas', label: 'Causación de Facturas', icon: FileText },
-    { path: '/cuentas-por-pagar', label: 'Cuentas por Pagar', icon: Wallet },
-    { path: '/proveedores', label: 'CRM Proveedores', icon: Users },
-    { path: '/configuracion', label: 'Config. Tributaria', icon: Settings },
-    { path: '/usuarios', label: 'Control de Usuario', icon: UserCog }
+    { path: '/ordenes', label: 'Nueva Orden', icon: ShoppingCart, module: 'ordenes' },
+    { path: '/almacen', label: 'Almacén (Recepción)', icon: Package, module: 'almacen' },
+    { path: '/facturas', label: 'Causación de Facturas', icon: FileText, module: 'facturas' },
+    { path: '/cuentas-por-pagar', label: 'Cuentas por Pagar', icon: Wallet, module: 'cuentas' },
+    { path: '/proveedores', label: 'CRM Proveedores', icon: Users, module: 'proveedores' },
+    { path: '/configuracion', label: 'Config. Tributaria', icon: Settings, module: 'configuracion' },
+    { path: '/usuarios', label: 'Control de Usuario', icon: UserCog, module: 'usuarios' }
   ];
+
+  const tienePermiso = useAuthStore(state => state.tienePermiso);
+  const visibleNavItems = navItems.filter(item => tienePermiso(item.module, 'lectura'));
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
@@ -32,7 +35,7 @@ const Layout = () => {
         </div>
         
         <nav className="flex-1 py-6 px-3 space-y-2">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

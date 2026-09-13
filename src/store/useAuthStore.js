@@ -7,6 +7,16 @@ const usuariosIniciales = [
   { id: '3', nombre: 'PRESUPUESTADOR', correo: 'proyectos@empresa.com', rol: 'PRESUPUESTADOR', estado: 'ACTIVO', password: '123' }
 ];
 
+const defaultPermisos = {
+  ordenes: { lectura: true, escritura: true, borrado: false, especial: false },
+  almacen: { lectura: true, escritura: true, borrado: false, especial: false },
+  facturas: { lectura: true, escritura: true, borrado: false, especial: false },
+  cuentas: { lectura: true, escritura: true, borrado: false, especial: false },
+  proveedores: { lectura: true, escritura: true, borrado: false, especial: false },
+  configuracion: { lectura: true, escritura: false, borrado: false, especial: false },
+  usuarios: { lectura: false, escritura: false, borrado: false, especial: false }
+};
+
 export const useAuthStore = create((set, get) => ({
   usuarioActual: null,
   usuarios: usuariosIniciales,
@@ -31,7 +41,8 @@ export const useAuthStore = create((set, get) => ({
           correo: u.email,
           rol: u.rol,
           estado: u.estado,
-          password: u.password || '123' // Fallback
+          password: u.password || '123', // Fallback
+          permisos: u.permisos || (u.rol === 'ADMINISTRADOR' ? null : defaultPermisos)
         }));
         set({ usuarios: users, isInitialized: true });
       } else {
@@ -41,6 +52,20 @@ export const useAuthStore = create((set, get) => ({
       console.warn('Network error fetching auth:', err);
       set({ isInitialized: true });
     }
+  },
+
+  tienePermiso: (modulo, accion = 'lectura') => {
+    const { usuarioActual } = get();
+    if (!usuarioActual) return false;
+    if (usuarioActual.rol === 'ADMINISTRADOR') return true; // El admin siempre tiene todos los permisos
+    
+    // Si no tiene matriz configurada, usamos una restricción estricta por defecto
+    if (!usuarioActual.permisos) return false;
+    
+    const moduloPermisos = usuarioActual.permisos[modulo];
+    if (!moduloPermisos) return false;
+    
+    return !!moduloPermisos[accion];
   },
 
   iniciarSesion: (correo, password) => {
@@ -131,7 +156,8 @@ export const useAuthStore = create((set, get) => ({
         email: nuevoUsuario.correo,
         nombre: nuevoUsuario.nombre,
         rol: nuevoUsuario.rol,
-        estado: 'Activo'
+        estado: 'Activo',
+        permisos: nuevoUsuario.rol === 'ADMINISTRADOR' ? null : defaultPermisos
       }]).select();
 
       if (!error && data && data.length > 0) {
@@ -156,6 +182,7 @@ export const useAuthStore = create((set, get) => ({
       if (datos.correo) updateData.email = datos.correo;
       if (datos.rol) updateData.rol = datos.rol;
       if (datos.estado) updateData.estado = datos.estado;
+      if (datos.permisos !== undefined) updateData.permisos = datos.permisos;
       
       await supabase.from('usuarios').update(updateData).eq('id', id);
     } catch (e) {}

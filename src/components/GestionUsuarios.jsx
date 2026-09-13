@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import Dialog from './Dialog';
+import PermisosModal from './PermisosModal';
 
 const GestionUsuarios = () => {
   const { 
@@ -21,6 +22,7 @@ const GestionUsuarios = () => {
   const [showModal, setShowModal] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA' });
+  const [usuarioPermisos, setUsuarioPermisos] = useState(null);
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
   const esAdmin = usuarioActual?.rol === 'ADMINISTRADOR';
@@ -278,18 +280,7 @@ const GestionUsuarios = () => {
                         </td>
                         <td className="py-4 px-4 text-center flex justify-center gap-2">
                           <button 
-                            onClick={() => {
-                              const permisos = u.rol === 'ADMINISTRADOR' 
-                                ? '✅ Acceso total a todos los módulos\n✅ Configuración del sistema\n✅ Gestión de usuarios' 
-                                : '✅ Crear Órdenes de Compra\n✅ Modificar sus propias órdenes\n❌ Configuración del sistema';
-                              setDialogConfig({
-                                isOpen: true,
-                                type: 'alert',
-                                title: `Permisos: ${u.rol}`,
-                                message: `${permisos}\n\nNota: Los permisos están vinculados a su Rol corporativo.`,
-                                onConfirm: () => setDialogConfig({ isOpen: false })
-                              });
-                            }}
+                            onClick={() => setUsuarioPermisos(u)}
                             className="p-2 bg-rose-500/10 text-rose-400 rounded hover:bg-rose-500/20 transition-colors" 
                             title="Ver Permisos"
                           >
@@ -386,6 +377,13 @@ const GestionUsuarios = () => {
         onConfirm={dialogConfig.onConfirm}
         onCancel={() => setDialogConfig({ ...dialogConfig, isOpen: false })}
       />
+      
+      {usuarioPermisos && (
+        <PermisosModal 
+          usuario={usuarioPermisos} 
+          onClose={() => setUsuarioPermisos(null)} 
+        />
+      )}
     </div>
   );
 };
