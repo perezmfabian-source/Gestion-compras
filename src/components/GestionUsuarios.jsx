@@ -150,37 +150,86 @@ const GestionUsuarios = () => {
 
         {/* Contenido de Mi Perfil */}
         {activeTab === 'Mi Perfil' && (
-          <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg">
-            <h2 className="text-lg font-bold text-white mb-4">Información de Cuenta</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl">
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Nombre Completo</label>
-                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium">
-                  {usuarioActual.nombre}
+          <div className="flex flex-col md:flex-row gap-6">
+            
+            {/* Columna Izquierda: Tarjeta de Perfil */}
+            <div className="w-full md:w-80 bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg flex flex-col items-center text-center h-fit">
+              <div className="relative mb-4">
+                <div className="w-28 h-28 rounded-full border-4 border-slate-800 bg-white flex items-center justify-center relative overflow-hidden">
+                  <div className="w-[100px] h-[100px] rounded-full border-2 border-rose-500 flex items-center justify-center">
+                    <span className="text-3xl font-bold text-rose-500">{usuarioActual?.nombre?.substring(0, 2).toUpperCase() || 'U'}</span>
+                  </div>
                 </div>
+                <button className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-400 p-2 rounded-full text-white shadow-lg transition-colors border-2 border-[#1E293B]">
+                  📷
+                </button>
               </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Correo Electrónico</label>
-                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-medium">
-                  {usuarioActual.correo}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Rol en el Sistema</label>
-                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-blue-400 font-bold">
-                  {usuarioActual.rol}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Estado</label>
-                <div className="px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-emerald-400 font-bold">
-                  {usuarioActual.estado}
-                </div>
+              <h2 className="text-lg font-bold text-white uppercase">{usuarioActual?.nombre}</h2>
+              <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">{usuarioActual?.rol}</p>
+              
+              <div className="mt-6 px-4 py-1.5 bg-slate-800 border border-slate-700 rounded-full inline-block">
+                <span className="text-[10px] text-slate-300 font-bold tracking-widest uppercase">• RANGO: {usuarioActual?.rol}</span>
               </div>
             </div>
-            <p className="text-xs text-slate-500 mt-6">
-              Para solicitar cambios en tu perfil o contraseña, comunícate con el Administrador del sistema.
-            </p>
+
+            {/* Columna Derecha: Formularios */}
+            <div className="flex-1 space-y-4">
+              
+              {/* Info Personal */}
+              <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">Nombre Completo</label>
+                    <input 
+                      type="text" 
+                      defaultValue={usuarioActual?.nombre}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">Correo Electrónico (Usuario)</label>
+                    <input 
+                      type="email" 
+                      defaultValue={usuarioActual?.correo}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 mb-6">
+                  <div className="p-3 bg-slate-800 rounded-lg text-slate-400">
+                    📷
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-300">Cambiar foto de perfil</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Haz clic en el ícono de cámara sobre tu foto actual para actualizarla.</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-colors shadow-lg shadow-blue-900/20">
+                    💾 Guardar Cambios
+                  </button>
+                </div>
+              </div>
+
+              {/* Seguridad */}
+              <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-xl border border-blue-500/20">
+                    🛡️
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">Seguridad de la Cuenta</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Protege tu cuenta actualizando tu contraseña periódicamente.</p>
+                  </div>
+                </div>
+                <button className="px-4 py-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-semibold text-sm rounded-lg transition-colors whitespace-nowrap">
+                  Cambiar Contraseña
+                </button>
+              </div>
+
+            </div>
           </div>
         )}
 
