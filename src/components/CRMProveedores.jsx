@@ -133,23 +133,24 @@ const CRMProveedores = () => {
           {mostrarForm && (
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-600 p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
-            <h2 className="text-lg font-bold text-white mb-6 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${modoEdicion ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
-                {modoEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-              </div>
-              {modoEdicion && (
+              
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${modoEdicion ? 'bg-indigo-500' : 'bg-emerald-500'}`}></span>
+                  {modoEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+                </h2>
                 <button 
                   onClick={() => {
-                    setFormData({ razonSocial: '', nit: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+                    setFormData({ razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
                     setModoEdicion(false);
+                    setMostrarForm(false);
                   }}
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Cancelar
+                  <X className="w-6 h-6" />
                 </button>
-              )}
-            </h2>
+              </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-1">Razón Social</label>
@@ -318,12 +319,25 @@ const CRMProveedores = () => {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className={`w-full mt-6 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all ${modoEdicion ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/50' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/50'}`}
-              >
-                {modoEdicion ? 'Actualizar Proveedor' : 'Guardar Proveedor'}
-              </button>
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData({ razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+                    setModoEdicion(false);
+                    setMostrarForm(false);
+                  }}
+                  className="w-1/3 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={`w-2/3 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all ${modoEdicion ? 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-900/50' : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/50'}`}
+                >
+                  {modoEdicion ? 'Actualizar Proveedor' : 'Guardar Proveedor'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

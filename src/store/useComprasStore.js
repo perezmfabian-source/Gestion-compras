@@ -80,7 +80,8 @@ export const useComprasStore = create((set, get) => ({
           vendedor: p.vendedor,
           perfilTributario: p.perfil_tributario,
           actividad: p.actividad_economica,
-          formaPago: p.forma_pago
+          formaPago: p.forma_pago,
+          documentos: p.documentos || []
         })) });
       }
 
@@ -258,7 +259,8 @@ export const useComprasStore = create((set, get) => ({
         vendedor: proveedor.vendedor,
         perfil_tributario: proveedor.perfilTributario,
         actividad_economica: proveedor.actividad,
-        forma_pago: proveedor.formaPago
+        forma_pago: proveedor.formaPago,
+        documentos: proveedor.documentos || []
       }], { onConflict: 'nit' });
       if (error) console.error("Error guardando proveedor:", error);
     } catch(e) {
