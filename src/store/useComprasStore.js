@@ -62,10 +62,11 @@ export const useComprasStore = create((set, get) => ({
   initStore: async () => {
     try {
       // Intentar cargar datos de Supabase si existen
-      const [provRes, ordRes, invRes] = await Promise.all([
+      const [provRes, ordRes, invRes, configRes] = await Promise.all([
         supabase.from('proveedores').select('*'),
         supabase.from('ordenes_compra').select('*'),
-        supabase.from('inventario').select('*')
+        supabase.from('inventario').select('*'),
+        supabase.from('configuracion').select('datos').eq('id', 'tributaria').single()
       ]);
 
       if (!provRes.error && provRes.data && provRes.data.length > 0) {
@@ -93,6 +94,10 @@ export const useComprasStore = create((set, get) => ({
           totales: { total: o.total_neto },
           _rawMetadatos: o.raw_metadatos || {}
         })) });
+      }
+
+      if (!configRes.error && configRes.data) {
+        set({ configTributaria: configRes.data.datos });
       }
 
       set({ isInitialized: true });
@@ -215,9 +220,20 @@ export const useComprasStore = create((set, get) => ({
       { id: 3, ciudad: 'BARRANQUILLA', actividad: 'Suministros', tarifa: '10.00', estado: 'Activo' },
     ]
   },
-  actualizarConfigTributaria: (nuevaConfig) => set((state) => ({
-    configTributaria: { ...state.configTributaria, ...nuevaConfig }
-  })),
+  actualizarConfigTributaria: async (nuevaConfig) => {
+    const estadoActual = get().configTributaria;
+    const configActualizada = { ...estadoActual, ...nuevaConfig };
+    
+    set({ configTributaria: configActualizada });
+
+    try {
+      await supabase.from('configuracion').upsert([
+        { id: 'tributaria', datos: configActualizada }
+      ], { onConflict: 'id' });
+    } catch(e) {
+      console.error("Error guardando config tributaria", e);
+    }
+  },
 
   // --- ACCIONES DE PROVEEDORES ---
   guardarProveedor: async (proveedor) => {
