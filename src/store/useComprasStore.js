@@ -230,7 +230,7 @@ export const useComprasStore = create((set, get) => ({
     });
 
     try {
-      await supabase.from('proveedores').upsert([{
+      const { error } = await supabase.from('proveedores').upsert([{
         nit: proveedor.nit,
         razon_social: proveedor.razonSocial,
         direccion: proveedor.direccion,
@@ -242,7 +242,10 @@ export const useComprasStore = create((set, get) => ({
         actividad_economica: proveedor.actividad,
         forma_pago: proveedor.formaPago
       }], { onConflict: 'nit' });
-    } catch(e) {}
+      if (error) console.error("Error guardando proveedor:", error);
+    } catch(e) {
+      console.error("Excepción guardando proveedor:", e);
+    }
   },
 
   eliminarProveedor: async (nit) => {
