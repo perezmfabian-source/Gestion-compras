@@ -122,11 +122,17 @@ export const useAuthStore = create((set, get) => ({
 
     // Supabase update
     try {
-      await supabase.from('usuarios').update({
+      const updatePayload = {
         nombre: usuarioActualizado.nombre,
         rol: usuarioActualizado.rol,
-        estado: usuarioActualizado.estado
-      }).eq('id', usuarioActualizado.id);
+        estado: usuarioActualizado.estado,
+        email: usuarioActualizado.correo
+      };
+      if (datos.password) {
+        updatePayload.password = datos.password;
+      }
+      
+      await supabase.from('usuarios').update(updatePayload).eq('id', usuarioActualizado.id);
     } catch (e) {
       console.error('Failed to sync to Supabase', e);
     }

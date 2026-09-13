@@ -25,6 +25,53 @@ const GestionUsuarios = () => {
   const [usuarioPermisos, setUsuarioPermisos] = useState(null);
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
+  // Estados Perfil
+  const [perfilForm, setPerfilForm] = useState({ 
+    nombre: usuarioActual?.nombre || '', 
+    correo: usuarioActual?.correo || '' 
+  });
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ actual: '', nueva: '', confirmar: '' });
+
+  const actualizarPerfil = useAuthStore(state => state.actualizarPerfil);
+
+  const guardarPerfil = async () => {
+    if (!perfilForm.nombre || !perfilForm.correo) return;
+    await actualizarPerfil({ nombre: perfilForm.nombre, correo: perfilForm.correo });
+    setDialogConfig({
+      isOpen: true,
+      type: 'alert',
+      title: 'Perfil Actualizado',
+      message: 'Tus datos han sido actualizados exitosamente.',
+      onConfirm: () => setDialogConfig({ isOpen: false })
+    });
+  };
+
+  const guardarPassword = async () => {
+    if (passwordForm.actual !== usuarioActual.password) {
+      alert('La contraseña actual es incorrecta.');
+      return;
+    }
+    if (passwordForm.nueva !== passwordForm.confirmar) {
+      alert('Las contraseñas nuevas no coinciden.');
+      return;
+    }
+    if (passwordForm.nueva.length < 3) {
+      alert('La contraseña debe tener al menos 3 caracteres.');
+      return;
+    }
+    await actualizarPerfil({ password: passwordForm.nueva });
+    setShowPasswordModal(false);
+    setPasswordForm({ actual: '', nueva: '', confirmar: '' });
+    setDialogConfig({
+      isOpen: true,
+      type: 'alert',
+      title: 'Contraseña Actualizada',
+      message: 'Tu contraseña ha sido actualizada exitosamente.',
+      onConfirm: () => setDialogConfig({ isOpen: false })
+    });
+  };
+
   const esAdmin = usuarioActual?.rol === 'ADMINISTRADOR';
 
   const handleGuardarMantenimiento = () => {
@@ -160,7 +207,10 @@ const GestionUsuarios = () => {
                     <span className="text-3xl font-bold text-rose-500">{usuarioActual?.nombre?.substring(0, 2).toUpperCase() || 'U'}</span>
                   </div>
                 </div>
-                <button className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-400 p-2 rounded-full text-white shadow-lg transition-colors border-2 border-[#1E293B]">
+                <button 
+                  onClick={() => alert('La función para subir fotos requerirá un Bucket de Supabase Storage. Esta característica estará en la próxima versión.')}
+                  className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-400 p-2 rounded-full text-white shadow-lg transition-colors border-2 border-[#1E293B]"
+                >
                   📷
                 </button>
               </div>
@@ -182,7 +232,8 @@ const GestionUsuarios = () => {
                     <label className="block text-xs text-slate-400 mb-2 font-medium">Nombre Completo</label>
                     <input 
                       type="text" 
-                      defaultValue={usuarioActual?.nombre}
+                      value={perfilForm.nombre}
+                      onChange={e => setPerfilForm({...perfilForm, nombre: e.target.value})}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -190,7 +241,8 @@ const GestionUsuarios = () => {
                     <label className="block text-xs text-slate-400 mb-2 font-medium">Correo Electrónico (Usuario)</label>
                     <input 
                       type="email" 
-                      defaultValue={usuarioActual?.correo}
+                      value={perfilForm.correo}
+                      onChange={e => setPerfilForm({...perfilForm, correo: e.target.value})}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500"
                     />
                   </div>
@@ -207,7 +259,10 @@ const GestionUsuarios = () => {
                 </div>
 
                 <div className="flex justify-end">
-                  <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-colors shadow-lg shadow-blue-900/20">
+                  <button 
+                    onClick={guardarPerfil}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-lg transition-colors shadow-lg shadow-blue-900/20"
+                  >
                     💾 Guardar Cambios
                   </button>
                 </div>
@@ -224,8 +279,30 @@ const GestionUsuarios = () => {
                     <p className="text-xs text-slate-500 mt-0.5">Protege tu cuenta actualizando tu contraseña periódicamente.</p>
                   </div>
                 </div>
-                <button className="px-4 py-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-semibold text-sm rounded-lg transition-colors whitespace-nowrap">
+                <button 
+                  onClick={() => setShowPasswordModal(true)}
+                  className="px-4 py-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-semibold text-sm rounded-lg transition-colors whitespace-nowrap"
+                >
                   Cambiar Contraseña
+                </button>
+              </div>
+
+              {/* 2FA */}
+              <div className="bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xl border border-emerald-500/20">
+                    📱
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-200">Autenticación de Dos Factores (2FA)</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Añade una capa extra de seguridad requiriendo un código desde tu celular.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => alert('La configuración de 2FA estará disponible en la próxima actualización de seguridad.')}
+                  className="px-6 py-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-semibold text-sm rounded-lg transition-colors whitespace-nowrap"
+                >
+                  Activar
                 </button>
               </div>
 
@@ -432,6 +509,59 @@ const GestionUsuarios = () => {
           usuario={usuarioPermisos} 
           onClose={() => setUsuarioPermisos(null)} 
         />
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1E293B] rounded-2xl w-full max-w-sm border border-slate-700 overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-slate-700 bg-slate-900/50">
+              <h3 className="text-lg font-bold text-white">Cambiar Contraseña</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Contraseña Actual</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.actual}
+                  onChange={e => setPasswordForm({...passwordForm, actual: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.nueva}
+                  onChange={e => setPasswordForm({...passwordForm, nueva: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-400 mb-1">Confirmar Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  value={passwordForm.confirmar}
+                  onChange={e => setPasswordForm({...passwordForm, confirmar: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setShowPasswordModal(false)}
+                className="px-4 py-2 rounded-lg text-slate-300 font-semibold hover:bg-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={guardarPassword}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-blue-900/20"
+              >
+                Actualizar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
