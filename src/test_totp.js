@@ -1,0 +1,1 @@
+import { authenticator } from 'otplib'; export const getSecret = () => authenticator.generateSecret();

@@ -33,18 +33,30 @@ export const useAuthStore = create((set, get) => ({
         return;
       }
       
+      
       if (data && data.length > 0) {
-        // Map DB fields to store fields
         const users = data.map(u => ({
           id: u.id,
           nombre: u.nombre,
           correo: u.email,
           rol: u.rol,
           estado: u.estado,
-          password: u.password || '123', // Fallback
-          permisos: u.permisos || (u.rol === 'ADMINISTRADOR' ? null : defaultPermisos)
+          password: u.password || '123',
+          permisos: u.permisos || (u.rol === 'ADMINISTRADOR' ? null : defaultPermisos),
+          mfaEnabled: !!u.mfa_enabled,
+          mfaSecret: u.mfa_secret || null
         }));
+        
+        // Fix ghost sessions
+        const currentId = get().usuarioActual?.id;
+        if (currentId && !users.find(u => u.id === currentId)) {
+           localStorage.removeItem('auth_session');
+           set({ usuarios: users, isInitialized: true, usuarioActual: null });
+           return;
+        }
+
         set({ usuarios: users, isInitialized: true });
+
       } else {
         set({ isInitialized: true });
       }
@@ -68,7 +80,7 @@ export const useAuthStore = create((set, get) => ({
     return !!moduloPermisos[accion];
   },
 
-  iniciarSesion: (correo, password) => {
+  iniciarSesion: (correo, password, codigo2FA = null) => {
     const { usuarios, modoMantenimiento } = get();
     const usuarioEncontrado = usuarios.find(u => u.correo.toLowerCase() === correo.toLowerCase() && u.password === password);
     
@@ -85,10 +97,26 @@ export const useAuthStore = create((set, get) => ({
       return { exito: false, mensaje: 'Mantenimiento' };
     }
 
+    // Validación 2FA
+    if (usuarioEncontrado.mfaEnabled) {
+      if (!codigo2FA) {
+        return { exito: false, requiere2FA: true, id: usuarioEncontrado.id, secret: usuarioEncontrado.mfaSecret };
+      }
+    }
+
     // Set user in local storage to keep session alive across refreshes temporarily (or we could rely on supabase auth later)
     localStorage.setItem('auth_session', JSON.stringify(usuarioEncontrado));
     set({ usuarioActual: usuarioEncontrado });
     return { exito: true };
+  },
+
+  completarLogin2FA: (usuarioId) => {
+    const { usuarios } = get();
+    const usuarioEncontrado = usuarios.find(u => u.id === usuarioId);
+    if (usuarioEncontrado) {
+      localStorage.setItem('auth_session', JSON.stringify(usuarioEncontrado));
+      set({ usuarioActual: usuarioEncontrado });
+    }
   },
 
   restaurarSesion: () => {
@@ -203,3 +231,5 @@ export const useAuthStore = create((set, get) => ({
     } catch (e) {}
   }
 }));
+
+

@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { authenticator } from '../lib/totp';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/useAuthStore';
 import Dialog from './Dialog';
@@ -60,6 +62,41 @@ const GestionUsuarios = () => {
   const [passwordForm, setPasswordForm] = useState({ actual: '', nueva: '', confirmar: '' });
 
   const actualizarPerfil = useAuthStore(state => state.actualizarPerfil);
+
+  // Estados para 2FA
+  const [modal2FA, setModal2FA] = useState(false);
+  const [secret2FA, setSecret2FA] = useState('');
+  const [codigo2FA, setCodigo2FA] = useState('');
+  const activar2FA = useAuthStore(state => state.activar2FA);
+  const desactivar2FA = useAuthStore(state => state.desactivar2FA);
+
+  const handleIniciar2FA = () => {
+    const secret = authenticator.generateSecret();
+    setSecret2FA(secret);
+    setCodigo2FA('');
+    setModal2FA(true);
+  };
+
+  const handleConfirmar2FA = () => {
+    try {
+      const isValid = authenticator.check(codigo2FA, secret2FA);
+      if (isValid) {
+        activar2FA(usuarioActual.id, secret2FA);
+        setModal2FA(false);
+        setDialogConfig({ isOpen: true, type: 'alert', title: '2FA Activado', message: 'Tu cuenta ahora esta protegida con Autenticacion de Dos Factores.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+      } else {
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'El codigo ingresado es incorrecto.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+      }
+    } catch(e) {
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'Ocurrio un error verificando el codigo.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+    }
+  };
+
+  const handleDesactivar2FA = () => {
+    desactivar2FA(usuarioActual.id);
+    setDialogConfig({ isOpen: true, type: 'alert', title: '2FA Desactivado', message: 'La Autenticacion de Dos Factores ha sido deshabilitada.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+  };
+
 
   const guardarPerfil = async () => {
     if (!perfilForm.nombre || !perfilForm.correo) return;
@@ -599,3 +636,5 @@ const GestionUsuarios = () => {
 };
 
 export default GestionUsuarios;
+
+

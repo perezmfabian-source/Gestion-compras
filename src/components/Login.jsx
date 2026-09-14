@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { authenticator } from '../lib/totp';
 import { useAuthStore } from '../store/useAuthStore';
 
 const Login = () => {
@@ -8,12 +9,33 @@ const Login = () => {
   
   const [correo, setCorreo] = useState('');
   const [password, setPassword] = useState('');
+  
   const [error, setError] = useState('');
+  const completarLogin2FA = useAuthStore(state => state.completarLogin2FA);
+  const [paso2FA, setPaso2FA] = useState(false);
+  const [codigo2FA, setCodigo2FA] = useState('');
+  const [authTemp, setAuthTemp] = useState(null);
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     
+    if (paso2FA) {
+      if (codigo2FA.length !== 6) return;
+      try {
+        const isValid = authenticator.check(codigo2FA, authTemp.secret);
+        if (isValid) {
+          completarLogin2FA(authTemp.id);
+        } else {
+          setError('El código ingresado es incorrecto.');
+        }
+      } catch(err) {
+        setError('Error verificando el código.');
+      }
+      return;
+    }
+
     if (!correo || !password) {
       setError('Por favor, ingresa correo y contraseña.');
       return;
@@ -22,8 +44,11 @@ const Login = () => {
     const resultado = iniciarSesion(correo, password);
     
     if (!resultado.exito) {
-      if (resultado.mensaje === 'Mantenimiento') {
-        setError('El sistema está en mantenimiento. Solo administradores pueden acceder.');
+      if (resultado.requiere2FA) {
+        setAuthTemp({ id: resultado.id, secret: resultado.secret });
+        setPaso2FA(true);
+      } else if (resultado.mensaje === 'Mantenimiento') {
+        setError('El sistema estǭ en mantenimiento. Solo administradores pueden acceder.');
       } else {
         setError(resultado.mensaje);
       }
@@ -58,6 +83,9 @@ const Login = () => {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {!paso2FA ? (
+              <>
+
             <div>
               <label className="block text-sm font-medium text-slate-300">
                 Correo electrónico
@@ -102,32 +130,47 @@ const Login = () => {
                 Iniciar Sesión
               </button>
             </div>
+                        </>
+            ) : (
+              <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-white mb-2">Verificación de Dos Pasos</h3>
+                  <p className="text-sm text-slate-400">Ingresa el código generado por tu aplicación autenticadora.</p>
+                </div>
+                <div>
+                  <input
+                    type="text"
+                    value={codigo2FA}
+                    onChange={(e) => setCodigo2FA(e.target.value.replace(/\D/g, '').slice(0,6))}
+                    className="appearance-none block w-full px-4 py-4 border border-emerald-500/30 bg-slate-900/80 rounded-xl shadow-sm placeholder-slate-500 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 sm:text-2xl text-center tracking-[0.5em] font-mono transition-colors"
+                    placeholder="000000"
+                    autoFocus
+                  />
+                </div>
+                {error && (
+                  <div className="text-sm text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 text-center font-medium">
+                    {error}
+                  </div>
+                )}
+                <div>
+                  <button
+                    type="submit"
+                    disabled={codigo2FA.length !== 6}
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-slate-900 transition-all"
+                  >
+                    Verificar y Entrar
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setPaso2FA(false); setCodigo2FA(''); setError(''); }}
+                  className="w-full text-center text-sm text-slate-400 hover:text-white"
+                >
+                  Volver al inicio de sesión
+                </button>
+              </div>
+            )}
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-700" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-slate-800 text-slate-500">
-                  Credenciales de prueba
-                </span>
-              </div>
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-3 text-xs text-center text-slate-400">
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
-                <p className="font-bold text-slate-300">ADMIN</p>
-                <p>admin@empresa.com</p>
-                <p>Pass: admin</p>
-              </div>
-              <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
-                <p className="font-bold text-slate-300">ANALISTA</p>
-                <p>analista@empresa.com</p>
-                <p>Pass: 123</p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

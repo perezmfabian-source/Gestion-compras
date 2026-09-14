@@ -11,7 +11,7 @@ Este documento es un registro vivo de las tareas, requerimientos y ajustes que s
 
 ## 🟡 Prioridad Media / Módulos Específicos
 - [x] **Perfil de Usuario:** Implementar la funcionalidad de subir/actualizar Foto de Perfil.
-- [ ] **Perfil de Usuario:** Implementar Autenticación de Dos Factores (2FA) para mayor seguridad.
+- [x] **Perfil de Usuario:** Implementar Autenticación de Dos Factores (2FA) para mayor seguridad.
 
 ## 🔵 Futuro / Integraciones (Fase Posterior)
 - [ ] **Integración ERP PresuPro:** Asegurar que la estructura de datos y código actual esté lista para su futura integración con el módulo de Presupuestos (migración amigable).
