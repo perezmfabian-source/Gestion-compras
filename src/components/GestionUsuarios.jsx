@@ -156,7 +156,9 @@ const GestionUsuarios = () => {
 
   const abrirModalEditar = (u) => {
     setUsuarioEditando(u.id);
-    setFormData({ nombre: u.nombre, correo: u.correo, rol: u.rol });
+    let mappedRol = u.rol;
+    if (mappedRol === 'ANALISTA') mappedRol = 'ANALISTA COMPRAS';
+    setFormData({ nombre: u.nombre, correo: u.correo, rol: mappedRol });
     setShowModal(true);
   };
 
