@@ -14,7 +14,7 @@ const formatCOP = (valor = 0) => {
 
 const Almacen = () => {
   const { 
-    historialOrdenes, 
+    historialOrdenes = [], 
     entradasAlmacen = [], 
     registrarEntradaAlmacen,
     inventario = [],

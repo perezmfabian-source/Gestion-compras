@@ -25,6 +25,14 @@ function App() {
     // Cargar datos de Supabase si hay conexion
     useAuthStore.getState().initAuth();
     useComprasStore.getState().initStore();
+
+    // Timeout de seguridad de 3 segundos por si Supabase no responde
+    const timer = setTimeout(() => {
+      useAuthStore.setState({ isInitialized: true });
+      useComprasStore.setState({ isInitialized: true });
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   if (!isAuthInitialized || !isStoreInitialized) {
