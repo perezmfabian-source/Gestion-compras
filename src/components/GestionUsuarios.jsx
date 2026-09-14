@@ -49,15 +49,15 @@ const GestionUsuarios = () => {
 
   const guardarPassword = async () => {
     if (passwordForm.actual !== usuarioActual.password) {
-      alert('La contraseña actual es incorrecta.');
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'La contraseña actual es incorrecta.', onConfirm: () => setDialogConfig({ isOpen: false }) });
       return;
     }
     if (passwordForm.nueva !== passwordForm.confirmar) {
-      alert('Las contraseñas nuevas no coinciden.');
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'Las contraseñas nuevas no coinciden.', onConfirm: () => setDialogConfig({ isOpen: false }) });
       return;
     }
     if (passwordForm.nueva.length < 3) {
-      alert('La contraseña debe tener al menos 3 caracteres.');
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'La contraseña debe tener al menos 3 caracteres.', onConfirm: () => setDialogConfig({ isOpen: false }) });
       return;
     }
     await actualizarPerfil({ password: passwordForm.nueva });
@@ -201,14 +201,14 @@ const GestionUsuarios = () => {
             
             {/* Columna Izquierda: Tarjeta de Perfil */}
             <div className="w-full md:w-80 bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg flex flex-col items-center text-center h-fit">
-              <div className="relative mb-4">
-                <div className="w-28 h-28 rounded-full border-4 border-slate-800 bg-white flex items-center justify-center relative overflow-hidden">
+              <div className="relative inline-block mb-4">
+                <div className="w-[110px] h-[110px] rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center shadow-inner relative overflow-hidden">
                   <div className="w-[100px] h-[100px] rounded-full border-2 border-rose-500 flex items-center justify-center">
                     <span className="text-3xl font-bold text-rose-500">{usuarioActual?.nombre?.substring(0, 2).toUpperCase() || 'U'}</span>
                   </div>
                 </div>
                 <button 
-                  onClick={() => alert('La función para subir fotos requerirá un Bucket de Supabase Storage. Esta característica estará en la próxima versión.')}
+                  onClick={() => setDialogConfig({ isOpen: true, type: 'alert', title: 'Próximamente', message: 'La función para subir fotos requerirá un Bucket de Supabase Storage. Esta característica estará en la próxima versión.', onConfirm: () => setDialogConfig({ isOpen: false }) })}
                   className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-400 p-2 rounded-full text-white shadow-lg transition-colors border-2 border-[#1E293B]"
                 >
                   📷
@@ -299,7 +299,7 @@ const GestionUsuarios = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => alert('La configuración de 2FA estará disponible en la próxima actualización de seguridad.')}
+                  onClick={() => setDialogConfig({ isOpen: true, type: 'alert', title: 'Próximamente', message: 'La configuración de 2FA estará disponible en la próxima actualización de seguridad.', onConfirm: () => setDialogConfig({ isOpen: false }) })}
                   className="px-6 py-2 bg-transparent hover:bg-slate-800 border border-slate-600 text-slate-300 font-semibold text-sm rounded-lg transition-colors whitespace-nowrap"
                 >
                   Activar

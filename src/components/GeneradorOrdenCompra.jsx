@@ -41,7 +41,7 @@ const GeneradorOrdenCompra = () => {
     const file = e.target.files[0];
     if (file) {
       if(file.size > 2 * 1024 * 1024) {
-        alert("Logo debe ser menor a 2MB.");
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'El logo debe ser menor a 2MB.', onConfirm: () => setDialogConfig({ isOpen: false }) });
         return;
       }
       const reader = new FileReader();
