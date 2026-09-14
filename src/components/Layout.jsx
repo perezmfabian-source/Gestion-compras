@@ -14,11 +14,11 @@ const Layout = () => {
     { path: '/cuentas-por-pagar', label: 'Cuentas por Pagar', icon: Wallet, module: 'cuentas' },
     { path: '/proveedores', label: 'CRM Proveedores', icon: Users, module: 'proveedores' },
     { path: '/configuracion', label: 'Config. Tributaria', icon: Settings, module: 'configuracion' },
-    { path: '/usuarios', label: 'Control de Usuario', icon: UserCog, module: 'usuarios' }
+    { path: '/usuarios', label: 'Mi Perfil', icon: UserCog, module: 'usuarios' }
   ];
 
   const tienePermiso = useAuthStore(state => state.tienePermiso);
-  const visibleNavItems = navItems.filter(item => tienePermiso(item.module, 'lectura'));
+  const visibleNavItems = navItems.filter(item => item.module === 'usuarios' || tienePermiso(item.module, 'lectura'));
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
