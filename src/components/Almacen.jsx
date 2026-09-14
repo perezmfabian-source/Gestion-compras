@@ -30,6 +30,7 @@ const Almacen = () => {
   const [ordenSeleccionada, setOrdenSeleccionada] = useState(null);
   const [datosRecepcion, setDatosRecepcion] = useState({ remision: '', observaciones: '' });
   const [itemsRecibiendo, setItemsRecibiendo] = useState({});
+  const [itemsStockMinimo, setItemsStockMinimo] = useState({});
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
   // -------------------------------------------------------------
@@ -89,8 +90,13 @@ const Almacen = () => {
     setOrdenSeleccionada(orden);
     setDatosRecepcion({ remision: '', observaciones: '' });
     const initialItems = {};
-    orden.itemsCalculados.forEach(item => { initialItems[item.id] = 0; });
+    const initialMinimos = {};
+    orden.itemsCalculados.forEach(item => { 
+      initialItems[item.id] = 0; 
+      initialMinimos[item.id] = 5; // Por defecto 5, configurable por el usuario
+    });
     setItemsRecibiendo(initialItems);
+    setItemsStockMinimo(initialMinimos);
   };
 
   const handleCantidadChange = (idItem, value, pendienteMax) => {
@@ -98,6 +104,12 @@ const Almacen = () => {
     if (val < 0) val = 0;
     if (val > pendienteMax) val = pendienteMax;
     setItemsRecibiendo(prev => ({ ...prev, [idItem]: val }));
+  };
+
+  const handleStockMinimoChange = (idItem, value) => {
+    let val = parseFloat(value) || 0;
+    if (val < 0) val = 0;
+    setItemsStockMinimo(prev => ({ ...prev, [idItem]: val }));
   };
 
   const guardarRecepcion = () => {
@@ -111,6 +123,7 @@ const Almacen = () => {
         return {
           idItem,
           cantidadLlegando: itemsRecibiendo[idItem],
+          stockMinimo: itemsStockMinimo[idItem] || 5,
           ...itemObj
         };
       })
@@ -131,7 +144,8 @@ const Almacen = () => {
         descripcion: i.descripcion,
         unidad: i.unidad,
         cantidadRecibida: i.cantidadLlegando,
-        precioUnitario: i.valorUnitario
+        precioUnitario: i.valorUnitario,
+        stockMinimo: i.stockMinimo
       })),
       itemsRecibidos: itemsA_Guardar // Mantenemos retrocompatibilidad con vista anterior
     };
@@ -369,51 +383,83 @@ const Almacen = () => {
 
         {/* ================= TAB 3: MAESTRO KARDEX ================= */}
         {activeTab === 'kardex' && (
-          <section className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[70vh]">
-            <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/30 shrink-0">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <LayoutList className="w-5 h-5 text-indigo-500" />
-                Maestro de Inventario (Saldos Costeados)
-              </h2>
-              <div className="text-sm font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-lg">
-                Valor Total Inventario: {formatCOP(inventario.reduce((acc, curr) => acc + curr.valorTotal, 0))}
+          <div className="space-y-6">
+            
+            {/* Dashboard de Alertas */}
+            {inventario.some(item => item.saldo <= (item.stockMinimo || 5)) && (
+              <section className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-6 mb-6">
+                <h3 className="text-rose-400 font-bold text-lg mb-4 flex items-center gap-2">
+                  <span>⚠️</span> Alerta de Stock Bajo (Punto de Reorden)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {inventario.filter(item => item.saldo <= (item.stockMinimo || 5)).map(item => (
+                    <div key={item.id} className="bg-rose-950/50 rounded-xl p-4 border border-rose-500/20 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <p className="text-xs font-mono text-rose-300">{item.sku}</p>
+                        <p className="font-bold text-slate-200 mt-1 line-clamp-2" title={item.descripcion}>{item.descripcion}</p>
+                      </div>
+                      <div className="mt-4 flex items-end justify-between">
+                        <span className="text-xs text-rose-400">Mín: {item.stockMinimo || 5}</span>
+                        <span className="text-xl font-bold text-rose-500">{item.saldo}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section className="bg-slate-800 rounded-2xl shadow-xl border border-slate-700 overflow-hidden flex flex-col h-[70vh]">
+              <div className="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-900/30 shrink-0">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <LayoutList className="w-5 h-5 text-indigo-500" />
+                  Maestro de Inventario (Saldos Costeados)
+                </h2>
+                <div className="text-sm font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-lg">
+                  Valor Total Inventario: {formatCOP(inventario.reduce((acc, curr) => acc + curr.valorTotal, 0))}
+                </div>
               </div>
-            </div>
-            <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left text-sm whitespace-nowrap">
-                <thead className="bg-slate-900/80 text-xs text-slate-400 uppercase tracking-wider sticky top-0">
-                  <tr>
-                    <th className="py-4 px-6 font-semibold">SKU / CÓDIGO</th>
-                    <th className="py-4 px-6 font-semibold">DESCRIPCIÓN</th>
-                    <th className="py-4 px-6 font-semibold text-center">ENTRADAS</th>
-                    <th className="py-4 px-6 font-semibold text-center">SALIDAS</th>
-                    <th className="py-4 px-6 font-semibold text-center text-teal-400 bg-teal-500/10">SALDO STOCK</th>
-                    <th className="py-4 px-6 font-semibold text-right">COSTO PROM.</th>
-                    <th className="py-4 px-6 font-semibold text-right">VALORIZACIÓN</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50">
-                  {inventario.length === 0 ? (
+              <div className="overflow-x-auto flex-1">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                  <thead className="bg-slate-900/80 text-xs text-slate-400 uppercase tracking-wider sticky top-0">
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-500">El inventario está vacío.</td>
+                      <th className="py-4 px-6 font-semibold">SKU / CÓDIGO</th>
+                      <th className="py-4 px-6 font-semibold">DESCRIPCIÓN</th>
+                      <th className="py-4 px-6 font-semibold text-center">ENTRADAS</th>
+                      <th className="py-4 px-6 font-semibold text-center">SALIDAS</th>
+                      <th className="py-4 px-6 font-semibold text-center text-teal-400 bg-teal-500/10">SALDO STOCK</th>
+                      <th className="py-4 px-6 font-semibold text-right">COSTO PROM.</th>
+                      <th className="py-4 px-6 font-semibold text-right">VALORIZACIÓN</th>
                     </tr>
-                  ) : (
-                    inventario.map(item => (
-                      <tr key={item.id} className="hover:bg-slate-700/30">
-                        <td className="py-3 px-6 font-mono text-slate-400 text-xs">{item.sku}</td>
-                        <td className="py-3 px-6 font-bold text-slate-200">{item.descripcion} <span className="text-[10px] font-normal text-slate-500 ml-1">({item.unidad})</span></td>
-                        <td className="py-3 px-6 text-center text-slate-400 font-mono">{item.entradas}</td>
-                        <td className="py-3 px-6 text-center text-rose-400 font-mono">{item.salidas}</td>
-                        <td className="py-3 px-6 text-center font-bold text-teal-400 bg-teal-500/5 font-mono text-lg">{item.saldo}</td>
-                        <td className="py-3 px-6 text-right font-mono text-slate-400">{formatCOP(item.costoPromedio)}</td>
-                        <td className="py-3 px-6 text-right font-mono font-bold text-indigo-400">{formatCOP(item.valorTotal)}</td>
+                  </thead>
+                  <tbody className="divide-y divide-slate-700/50">
+                    {inventario.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-500">El inventario está vacío.</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                    ) : (
+                      inventario.map(item => {
+                        const isLowStock = item.saldo <= (item.stockMinimo || 5);
+                        return (
+                          <tr key={item.id} className={`transition-colors ${isLowStock ? 'bg-rose-500/5 hover:bg-rose-500/10' : 'hover:bg-slate-700/30'}`}>
+                            <td className="py-3 px-6 font-mono text-slate-400 text-xs">
+                              {isLowStock && <span className="mr-2 text-rose-500" title="Stock Bajo">⚠️</span>}
+                              {item.sku}
+                            </td>
+                            <td className="py-3 px-6 font-bold text-slate-200">{item.descripcion} <span className="text-[10px] font-normal text-slate-500 ml-1">({item.unidad})</span></td>
+                            <td className="py-3 px-6 text-center text-slate-400 font-mono">{item.entradas}</td>
+                            <td className="py-3 px-6 text-center text-rose-400 font-mono">{item.salidas}</td>
+                            <td className={`py-3 px-6 text-center font-bold font-mono text-lg ${isLowStock ? 'text-rose-400 bg-rose-500/10' : 'text-teal-400 bg-teal-500/5'}`}>{item.saldo}</td>
+                            <td className="py-3 px-6 text-right font-mono text-slate-400">{formatCOP(item.costoPromedio)}</td>
+                            <td className="py-3 px-6 text-right font-mono font-bold text-indigo-400">{formatCOP(item.valorTotal)}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
         )}
 
       </div>
@@ -450,6 +496,7 @@ const Almacen = () => {
                       <th className="py-3 px-4 text-center">Pedida</th>
                       <th className="py-3 px-4 text-center text-teal-400">Ya Recibida</th>
                       <th className="py-3 px-4 text-center text-amber-400">Pendiente</th>
+                      <th className="py-3 px-4 text-center text-rose-400 w-24">Stock Mín.</th>
                       <th className="py-3 px-4 text-center bg-indigo-500/10 text-indigo-300 w-32">Cantidad a Recibir</th>
                     </tr>
                   </thead>
@@ -463,6 +510,15 @@ const Almacen = () => {
                         <td className="py-3 px-4 text-center font-mono">{item.cantidadPedida}</td>
                         <td className="py-3 px-4 text-center font-mono text-teal-400 font-bold">{item.cantidadYaRecibida}</td>
                         <td className="py-3 px-4 text-center font-mono text-amber-400 font-bold">{item.cantidadPendiente}</td>
+                        <td className="py-2 px-4">
+                          <input 
+                            type="number" min="0"
+                            value={itemsStockMinimo[item.id] !== undefined ? itemsStockMinimo[item.id] : 5}
+                            onChange={(e) => handleStockMinimoChange(item.id, e.target.value)}
+                            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-rose-300 text-center font-mono focus:outline-none focus:border-rose-500"
+                            title="Alerta si el saldo baja de este valor"
+                          />
+                        </td>
                         <td className="py-2 px-4 bg-indigo-500/5">
                           {item.cantidadPendiente === 0 ? (
                             <div className="text-center text-xs text-teal-500 font-bold bg-teal-500/10 py-1.5 rounded">COMPLETO</div>

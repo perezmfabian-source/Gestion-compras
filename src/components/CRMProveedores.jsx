@@ -1,9 +1,11 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useComprasStore } from '../store/useComprasStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { Mail, Phone, MapPin, Building2, UserCircle, UploadCloud, X, FileText, Download } from 'lucide-react';
 import Dialog from './Dialog';
 
 const CRMProveedores = () => {
+  const tienePermiso = useAuthStore(state => state.tienePermiso);
   const proveedores = useComprasStore(state => state.proveedores) || [];
   const configTributaria = useComprasStore(state => state.configTributaria) || { tarifasIca: [] };
   const guardarProveedor = useComprasStore(state => state.guardarProveedor);
@@ -117,7 +119,7 @@ const CRMProveedores = () => {
           </div>
           <button 
             onClick={() => {
-              setFormData({ razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+              setFormData({ razonSocial: '', nit: '', email: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
               setModoEdicion(false);
               setMostrarForm(true);
             }}
@@ -141,7 +143,7 @@ const CRMProveedores = () => {
                 </h2>
                 <button 
                   onClick={() => {
-                    setFormData({ razonSocial: '', nit: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+                    setFormData({ razonSocial: '', nit: '', email: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
                     setModoEdicion(false);
                     setMostrarForm(false);
                   }}
@@ -152,30 +154,42 @@ const CRMProveedores = () => {
               </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">Razón Social</label>
-                <input
-                  type="text"
-                  value={formData.razonSocial}
-                  onChange={(e) => setFormData({...formData, razonSocial: e.target.value})}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
-                  placeholder="Ej. Cementos Argos"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-400 mb-1">NIT</label>
-                <input
-                  type="text"
-                  value={formData.nit}
-                  disabled={modoEdicion}
-                  onChange={(e) => setFormData({...formData, nit: e.target.value})}
-                  className={`w-full px-4 py-2 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${modoEdicion ? 'bg-slate-800 opacity-70' : 'bg-slate-900'}`}
-                  placeholder="Ej. 890900266-9"
-                />
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-1">Razón Social</label>
+                  <input
+                    type="text"
+                    value={formData.razonSocial}
+                    onChange={(e) => setFormData({...formData, razonSocial: e.target.value})}
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                    placeholder="Ej. Cementos Argos"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">NIT</label>
+                    <input
+                      type="text"
+                      value={formData.nit}
+                      disabled={modoEdicion}
+                      onChange={(e) => setFormData({...formData, nit: e.target.value})}
+                      className={`w-full px-4 py-2 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors ${modoEdicion ? 'bg-slate-800 opacity-70' : 'bg-slate-900'}`}
+                      placeholder="Ej. 890900266-9"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Correo Electrónico</label>
+                    <input
+                      type="email"
+                      value={formData.email || ''}
+                      onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-colors"
+                      placeholder="Ej. ventas@empresa.com"
+                    />
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-1">Dirección</label>
                   <input
@@ -380,6 +394,7 @@ const CRMProveedores = () => {
                           {prov.vendedor && <span className="block font-semibold text-slate-300">👤 {prov.vendedor}</span>}
                           {prov.telefono && <span>📞 {prov.telefono}</span>}
                           {prov.celular && <span className="ml-2">📱 {prov.celular}</span>}
+                          {prov.email && <span className="block mt-0.5 text-indigo-400">✉️ {prov.email}</span>}
                         </div>
                       </td>
                       <td className="py-4 px-6">
@@ -390,14 +405,16 @@ const CRMProveedores = () => {
                       </td>
                       <td className="py-4 px-6 text-center">
                         <div className="flex flex-col gap-2 items-center justify-center">
-                          <div className="flex gap-2 justify-center">
-                            <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
-                              ✏️
-                            </button>
-                            <button onClick={() => setProveedorABorrar(prov)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
-                              🗑️
-                            </button>
-                          </div>
+                            <div className="flex gap-2 justify-center">
+                              <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
+                                ✏️
+                              </button>
+                              {tienePermiso('proveedores.eliminar') && (
+                                <button onClick={() => setProveedorABorrar(prov)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
+                                  🗑️
+                                </button>
+                              )}
+                            </div>
                           {prov.documentos && prov.documentos.length > 0 && (
                             <button 
                               onClick={() => setModalDocs(prov)}
@@ -460,13 +477,13 @@ const CRMProveedores = () => {
       {/* Modal de Documentos */}
       {modalDocs && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl w-full max-w-md overflow-hidden">
+          <div className="bg-slate-800 rounded-2xl border border-slate-600 shadow-2xl w-full max-w-lg overflow-hidden">
             <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-900/50">
               <h3 className="text-white font-bold flex items-center gap-2">
                 <span className="text-xl">📄</span> Documentos de {modalDocs.razonSocial}
               </h3>
               <button onClick={() => setModalDocs(null)} className="text-slate-400 hover:text-white transition-colors">
-                ✕
+                <X className="w-6 h-6" />
               </button>
             </div>
             <div className="p-4 max-h-[60vh] overflow-y-auto">
@@ -474,14 +491,39 @@ const CRMProveedores = () => {
                 <div key={i} className="flex items-center justify-between p-3 bg-slate-900/50 hover:bg-slate-700/50 border border-slate-700 rounded-lg mb-2 transition-colors">
                   <div className="flex items-center gap-3 overflow-hidden">
                     <span className="text-2xl">📑</span>
-                    <span className="text-sm font-medium text-slate-200 truncate">{doc.nombre}</span>
+                    <span className="text-sm font-medium text-slate-200 truncate" title={doc.nombre}>{doc.nombre}</span>
                   </div>
-                  <button 
-                    onClick={() => descargarDocumento(doc)}
-                    className="ml-4 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2 shrink-0"
-                  >
-                    ⬇️ Descargar
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <button 
+                      onClick={() => {
+                        try {
+                          const arr = doc.base64.split(',');
+                          const mime = arr[0].match(/:(.*?);/)[1];
+                          const bstr = atob(arr[1]);
+                          let n = bstr.length;
+                          const u8arr = new Uint8Array(n);
+                          while(n--){
+                              u8arr[n] = bstr.charCodeAt(n);
+                          }
+                          const blob = new Blob([u8arr], {type: mime});
+                          const url = URL.createObjectURL(blob);
+                          window.open(url, '_blank');
+                        } catch (e) {
+                          console.error("Error abriendo documento", e);
+                          descargarDocumento(doc);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      👁️ Ver PDF
+                    </button>
+                    <button 
+                      onClick={() => descargarDocumento(doc)}
+                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      ⬇️ Descargar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
 import { useComprasStore } from '../store/useComprasStore';
+import { useAuthStore } from '../store/useAuthStore';
 import OrdenCompraPDF from './OrdenCompraPDF';
 import Dialog from './Dialog';
 
@@ -16,6 +17,7 @@ const formatCOP = (valor = 0) => {
 };
 
 const GeneradorOrdenCompra = () => {
+  const tienePermiso = useAuthStore(state => state.tienePermiso);
   const metadatos = useComprasStore((state) => state.metadatos);
   const actualizarMetadatos = useComprasStore((state) => state.actualizarMetadatos);
   const materiales = useComprasStore((state) => state.materiales);
@@ -27,10 +29,28 @@ const GeneradorOrdenCompra = () => {
   const totales = getTotales();
   const guardarOrden = useComprasStore((state) => state.guardarOrden);
   const historialOrdenes = useComprasStore((state) => state.historialOrdenes);
+  const empresaEmisora = useComprasStore((state) => state.empresaEmisora);
+  const actualizarEmpresa = useComprasStore((state) => state.actualizarEmpresa);
   
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: null });
+  const [previewOrden, setPreviewOrden] = useState(null);
 
   const cargarOrden = useComprasStore((state) => state.cargarOrden);
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if(file.size > 2 * 1024 * 1024) {
+        alert("Logo debe ser menor a 2MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        actualizarEmpresa({ logoBase64: ev.target.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const ordenCompleta = {
     consecutivo: metadatos.consecutivo || 'OC-000',
@@ -38,6 +58,7 @@ const GeneradorOrdenCompra = () => {
     proveedor: { 
       nit: metadatos.proveedorData?.nit || metadatos.idProveedor, 
       razonSocial: metadatos.proveedorData?.razonSocial || ('PROVEEDOR ' + metadatos.idProveedor),
+      email: metadatos.proveedorData?.email || '',
       direccion: metadatos.proveedorData?.direccion || 'N/A',
       telefono: metadatos.proveedorData?.telefono || 'N/A',
       formaPago: metadatos.proveedorData?.formaPago || 'Contado'
@@ -71,14 +92,27 @@ const GeneradorOrdenCompra = () => {
               Generador de Orden de Compra
             </h1>
           </div>
-          <div className="sm:text-right">
-            <span className="text-xs text-slate-400 block">Consecutivo Asignado</span>
-            <span className="font-mono text-lg font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 inline-block mb-2">
-              {ordenCompleta.consecutivo}
-            </span>
-            <div className="text-xs text-emerald-600 font-semibold">
-              Órdenes en Historial: {historialOrdenes?.length || 0}
+          <div className="sm:text-right flex flex-col sm:items-end gap-2">
+            <div>
+              <span className="text-xs text-slate-400 block">Consecutivo Asignado</span>
+              <span className="font-mono text-lg font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 inline-block mb-1">
+                {ordenCompleta.consecutivo}
+              </span>
+              <div className="text-xs text-emerald-600 font-semibold">
+                Órdenes en Historial: {historialOrdenes?.length || 0}
+              </div>
             </div>
+            
+            <label className="text-xs text-indigo-600 font-bold bg-indigo-50 border border-indigo-200 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors inline-flex items-center gap-1.5 shadow-sm mt-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Insertar Logo Empresa
+              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            </label>
+            {empresaEmisora?.logoBase64 && (
+              <span className="text-[10px] text-emerald-500 font-semibold">✓ Logo cargado</span>
+            )}
           </div>
         </header>
 
@@ -363,6 +397,15 @@ const GeneradorOrdenCompra = () => {
             <span>Guardar en Historial PresuPro</span>
           </button>
 
+          <button
+            onClick={() => setPreviewOrden(ordenCompleta)}
+            disabled={materiales.length === 0}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-rose-600 hover:bg-rose-500 disabled:bg-slate-300 active:bg-rose-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-rose-900/15 transition-all"
+          >
+            <span className="text-xl">🖨️</span>
+            <span>Pre-visualizar / Imprimir (PDF)</span>
+          </button>
+
           <PDFDownloadLink
             document={<OrdenCompraPDF orden={ordenCompleta} />}
             fileName={`Orden_Compra_${ordenCompleta.consecutivo}.pdf`}
@@ -377,6 +420,16 @@ const GeneradorOrdenCompra = () => {
               </>
             )}
           </PDFDownloadLink>
+
+          {ordenCompleta.proveedor?.email && (
+            <a 
+              href={`mailto:${ordenCompleta.proveedor.email}?subject=Orden de Compra ${ordenCompleta.consecutivo}&body=Hola ${ordenCompleta.proveedor.razonSocial},%0D%0A%0D%0AAdjunto enviamos la Orden de Compra ${ordenCompleta.consecutivo}. Por favor confirmar de recibido.%0D%0A%0D%0AGracias.`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-900/15 transition-all"
+            >
+              <span className="text-xl">📧</span>
+              <span>Enviar al Proveedor</span>
+            </a>
+          )}
         </footer>
 
         {/* ================= SECCIÓN HISTORIAL DE ÓRDENES ================= */}
@@ -440,27 +493,40 @@ const GeneradorOrdenCompra = () => {
                             </svg>
                           </button>
 
+                          {tienePermiso('ordenes.eliminar') && (
+                            <button
+                              onClick={() => {
+                                setDialogConfig({
+                                  isOpen: true,
+                                  type: 'confirm',
+                                  title: 'Eliminar Orden',
+                                  message: `¿Seguro que deseas borrar la orden ${orden.consecutivo}?`,
+                                  onConfirm: () => {
+                                    useComprasStore.getState().eliminarOrden(orden.consecutivo);
+                                    setDialogConfig({ isOpen: false });
+                                  }
+                                });
+                              }}
+                              title="Borrar Orden"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          )}
+                          
                           <button
-                            onClick={() => {
-                              setDialogConfig({
-                                isOpen: true,
-                                type: 'confirm',
-                                title: 'Eliminar Orden',
-                                message: `¿Seguro que deseas borrar la orden ${orden.consecutivo}?`,
-                                onConfirm: () => {
-                                  useComprasStore.getState().eliminarOrden(orden.consecutivo);
-                                  setDialogConfig({ isOpen: false });
-                                }
-                              });
-                            }}
-                            title="Borrar Orden"
-                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                            onClick={() => setPreviewOrden(orden)}
+                            title="Pre-visualizar PDF"
+                            className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </button>
-                          
+
                           <PDFDownloadLink
                             document={<OrdenCompraPDF orden={orden} />}
                             fileName={`Orden_Compra_${orden.consecutivo}.pdf`}
@@ -484,6 +550,39 @@ const GeneradorOrdenCompra = () => {
         )}
 
       </div>
+
+      {previewOrden && (
+        <div className="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 shadow-2xl rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-900/50">
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <span className="text-xl">🖨️</span>
+                Pre-visualización de Impresión - {previewOrden.consecutivo}
+              </h3>
+              <div className="flex items-center gap-4">
+                {previewOrden.proveedor?.email && (
+                  <a 
+                    href={`mailto:${previewOrden.proveedor.email}?subject=Orden de Compra ${previewOrden.consecutivo}&body=Hola ${previewOrden.proveedor.razonSocial},%0D%0A%0D%0AAdjunto enviamos la Orden de Compra ${previewOrden.consecutivo}. Por favor confirmar de recibido.%0D%0A%0D%0AGracias.`}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-colors flex items-center gap-2"
+                  >
+                    <span>📧</span> Enviar al Proveedor
+                  </a>
+                )}
+                <button onClick={() => setPreviewOrden(null)} className="p-2 text-slate-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 w-full bg-slate-950 p-4">
+              <PDFViewer width="100%" height="100%" className="border-0 rounded shadow-lg">
+                <OrdenCompraPDF orden={previewOrden} />
+              </PDFViewer>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Dialog
         isOpen={dialogConfig.isOpen}

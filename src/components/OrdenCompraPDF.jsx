@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: {
@@ -159,7 +159,10 @@ export function OrdenCompraPDF({ orden = {} }) {
           
           {/* Fila 1 */}
           <View style={styles.row}>
-            <View style={[styles.cell, { width: '70%' }]}>
+            <View style={[styles.cell, { width: '70%', flexDirection: 'row', alignItems: 'center' }]}>
+              {orden.empresa?.logoBase64 && (
+                <Image src={orden.empresa.logoBase64} style={{ width: 40, height: 40, objectFit: 'contain', marginLeft: 8 }} />
+              )}
               <Text style={styles.mainTitle}>{orden.empresa?.nombre || 'EMPRESA EMISORA SAS'}</Text>
             </View>
             <View style={[styles.cellNoBorder, { width: '30%', padding: 8 }]}>

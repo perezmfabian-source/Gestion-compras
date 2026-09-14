@@ -73,6 +73,7 @@ export const useComprasStore = create((set, get) => ({
         set({ proveedores: provRes.data.map(p => ({
           nit: p.nit,
           razonSocial: p.razon_social,
+          email: p.email,
           direccion: p.direccion,
           ciudad: p.ciudad,
           telefono: p.telefono,
@@ -127,8 +128,13 @@ export const useComprasStore = create((set, get) => ({
         salidas: 0,
         saldo: 0,
         costoPromedio: 0,
-        valorTotal: 0
+        valorTotal: 0,
+        stockMinimo: movimiento.stockMinimo || 5
       };
+
+      if (movimiento.stockMinimo !== undefined) {
+        itemActual.stockMinimo = movimiento.stockMinimo;
+      }
 
       const qty = Number(movimiento.cantidad) || 0;
       const cstUnit = Number(movimiento.costoUnitario) || 0;
@@ -252,6 +258,7 @@ export const useComprasStore = create((set, get) => ({
       const { error } = await supabase.from('proveedores').upsert([{
         nit: proveedor.nit,
         razon_social: proveedor.razonSocial,
+        email: proveedor.email,
         direccion: proveedor.direccion,
         ciudad: proveedor.ciudad,
         telefono: proveedor.telefono,
@@ -439,7 +446,8 @@ export const useComprasStore = create((set, get) => ({
         cantidad: item.cantidadRecibida,
         costoUnitario: item.precioUnitario || 0,
         referencia: nuevaEntrada.ordenConsecutivo,
-        responsable: nuevaEntrada.recepcionista || 'Almacén'
+        responsable: nuevaEntrada.recepcionista || 'Almacén',
+        stockMinimo: item.stockMinimo || 5
       });
     });
 
