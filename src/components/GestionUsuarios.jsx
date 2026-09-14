@@ -56,7 +56,7 @@ const GestionUsuarios = () => {
   // Estados Perfil
   const [perfilForm, setPerfilForm] = useState({ 
     nombre: usuarioActual?.nombre || '', 
-    correo: usuarioActual?.correo || '' 
+    correo: usuarioActual?.correo || '', password: '' 
   });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ actual: '', nueva: '', confirmar: '' });
@@ -100,7 +100,10 @@ const GestionUsuarios = () => {
 
   const guardarPerfil = async () => {
     if (!perfilForm.nombre || !perfilForm.correo) return;
-    await actualizarPerfil({ nombre: perfilForm.nombre, correo: perfilForm.correo });
+    const updates = { nombre: perfilForm.nombre, correo: perfilForm.correo };
+    if (perfilForm.password) updates.password = perfilForm.password;
+    await actualizarPerfil(updates);
+    setPerfilForm({...perfilForm, password: ''});
     setDialogConfig({
       isOpen: true,
       type: 'alert',
