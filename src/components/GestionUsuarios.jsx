@@ -24,7 +24,7 @@ const GestionUsuarios = () => {
   // Estados para Modal de Crear/Editar
   const [showModal, setShowModal] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState(null);
-  const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA' });
+  const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA COMPRAS' });
   const [usuarioPermisos, setUsuarioPermisos] = useState(null);
 
   const fileInputRef = useRef(null);
@@ -150,7 +150,7 @@ const GestionUsuarios = () => {
 
   const abrirModalNuevo = () => {
     setUsuarioEditando(null);
-    setFormData({ nombre: '', correo: '', rol: 'ANALISTA' });
+    setFormData({ nombre: '', correo: '', rol: 'ANALISTA COMPRAS' });
     setShowModal(true);
   };
 
@@ -165,8 +165,10 @@ const GestionUsuarios = () => {
     
     if (usuarioEditando) {
       actualizarUsuario(usuarioEditando, formData);
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Usuario Actualizado', message: 'Los datos del usuario han sido actualizados exitosamente.', onConfirm: () => setDialogConfig({ isOpen: false }) });
     } else {
       agregarUsuario(formData);
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Usuario Creado', message: 'El nuevo usuario ha sido creado exitosamente.', onConfirm: () => setDialogConfig({ isOpen: false }) });
     }
     setShowModal(false);
   };
@@ -534,10 +536,11 @@ const GestionUsuarios = () => {
                   onChange={e => setFormData({...formData, rol: e.target.value})}
                   className="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
                 >
-                  <option value="ANALISTA">ANALISTA</option>
-                  <option value="PRESUPUESTADOR">PRESUPUESTADOR</option>
-                  <option value="ADMINISTRADOR">ADMINISTRADOR</option>
-                </select>
+                    <option value="ANALISTA COMPRAS">ANALISTA COMPRAS</option>
+                    <option value="ALMACENISTA">ALMACENISTA</option>
+                    <option value="PRESUPUESTADOR">PRESUPUESTADOR</option>
+                    <option value="ADMINISTRADOR">ADMINISTRADOR</option>
+                  </select>
               </div>
               {!usuarioEditando && (
                 <p className="text-xs text-amber-500 mt-2">
