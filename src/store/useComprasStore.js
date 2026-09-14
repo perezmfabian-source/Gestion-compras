@@ -86,6 +86,56 @@ export const useComprasStore = create((set, get) => ({
         })) });
       }
 
+      if (!invRes.error && invRes.data && invRes.data.length > 0) {
+        set({ inventario: invRes.data.map(i => ({
+          id: i.id,
+          sku: i.sku,
+          descripcion: i.descripcion,
+          unidad: i.unidad,
+          entradas: Number(i.entradas),
+          salidas: Number(i.salidas),
+          saldo: Number(i.saldo),
+          costoPromedio: Number(i.costo_promedio),
+          valorTotal: Number(i.valor_total),
+          stockMinimo: Number(i.stock_minimo)
+        })) });
+      }
+
+      // SUSCRIPCIÓN TIEMPO REAL (INVENTARIO)
+      supabase.channel('custom-inventario-channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'inventario' },
+          (payload) => {
+            console.log('Cambio en inventario recibido:', payload);
+            if (payload.new && payload.new.sku) {
+              set((state) => {
+                const nuevoInv = [...state.inventario];
+                const index = nuevoInv.findIndex(i => i.sku === payload.new.sku);
+                const itemFormateado = {
+                  id: payload.new.id,
+                  sku: payload.new.sku,
+                  descripcion: payload.new.descripcion,
+                  unidad: payload.new.unidad,
+                  entradas: Number(payload.new.entradas),
+                  salidas: Number(payload.new.salidas),
+                  saldo: Number(payload.new.saldo),
+                  costoPromedio: Number(payload.new.costo_promedio),
+                  valorTotal: Number(payload.new.valor_total),
+                  stockMinimo: Number(payload.new.stock_minimo)
+                };
+                if (index >= 0) {
+                  nuevoInv[index] = itemFormateado;
+                } else {
+                  nuevoInv.push(itemFormateado);
+                }
+                return { inventario: nuevoInv };
+              });
+            }
+          }
+        )
+        .subscribe();
+
       if (!ordRes.error && ordRes.data && ordRes.data.length > 0) {
         set({ historialOrdenes: ordRes.data.map(o => ({
           consecutivo: o.consecutivo,
@@ -170,18 +220,37 @@ export const useComprasStore = create((set, get) => ({
 
     // Supabase update
     try {
-       // Si usamos la BD real, esto requeriría UPSERT en inventario y INSERT en movimientos.
-       // Se deja listo para usar supabase client cuando configuren la bd
+       // Buscar el item para upsert
+       const state = get();
+       const inventarioReal = state.inventario.find(i => i.sku === nuevoMov.sku || i.descripcion === nuevoMov.descripcion);
+       
+       if (inventarioReal) {
+         await supabase.from('inventario').upsert({
+           sku: inventarioReal.sku,
+           descripcion: inventarioReal.descripcion,
+           unidad: inventarioReal.unidad,
+           entradas: inventarioReal.entradas,
+           salidas: inventarioReal.salidas,
+           saldo: inventarioReal.saldo,
+           costo_promedio: inventarioReal.costoPromedio,
+           valor_total: inventarioReal.valorTotal,
+           stock_minimo: inventarioReal.stockMinimo,
+           updated_at: new Date().toISOString()
+         }, { onConflict: 'sku' });
+       }
+
        await supabase.from('movimientos_inventario').insert([{
          id_movimiento: nuevoMov.idMovimiento,
          tipo: nuevoMov.tipo,
-         sku: nuevoMov.sku,
+         sku: inventarioReal?.sku || nuevoMov.sku,
          cantidad: nuevoMov.cantidad,
          costo_unitario: nuevoMov.costoUnitario,
          referencia: nuevoMov.referencia,
          responsable: nuevoMov.responsable
        }]);
-    } catch(e) {}
+    } catch(e) {
+      console.error('Error sincronizando kardex', e);
+    }
   },
 
   causarFactura: async (factura) => {

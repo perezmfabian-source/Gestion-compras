@@ -56,8 +56,12 @@ const Layout = () => {
         {/* Perfil del Usuario */}
         <div className="p-4 border-t border-slate-800 bg-slate-900/50">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg">
-              {usuarioActual?.nombre?.charAt(0) || 'U'}
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg overflow-hidden">
+              {usuarioActual?.fotoUrl ? (
+                <img src={usuarioActual.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+              ) : (
+                usuarioActual?.nombre?.charAt(0) || 'U'
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-white truncate">{usuarioActual?.nombre}</p>

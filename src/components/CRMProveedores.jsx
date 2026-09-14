@@ -1,4 +1,5 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { useComprasStore } from '../store/useComprasStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { Mail, Phone, MapPin, Building2, UserCircle, UploadCloud, X, FileText, Download } from 'lucide-react';
@@ -61,33 +62,40 @@ const CRMProveedores = () => {
     setMostrarForm(true);
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     
-    files.forEach(file => {
-      // Validar tamaño aprox < 2MB para no matar localStorage
+    for (const file of files) {
       if(file.size > 2 * 1024 * 1024) {
         setDialogConfig({
           isOpen: true,
           type: 'alert',
           title: 'Archivo muy grande',
-          message: `El archivo ${file.name} es demasiado grande. Máximo 2MB permitidos para demo local.`,
+          message: `El archivo ${file.name} es demasiado grande. Máximo 2MB permitidos.`,
           onConfirm: () => setDialogConfig({ isOpen: false })
         });
-        return;
+        continue;
       }
       
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setFormData(prev => ({
-          ...prev,
-          documentos: [...(prev.documentos || []), { nombre: file.name, base64: ev.target.result }]
-        }));
-      };
-      reader.readAsDataURL(file);
-    });
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabase.storage.from('proveedores-docs').upload(filePath, file);
+      
+      if (error) {
+        console.error('Error uploading file: ', error);
+        continue;
+      }
+
+      const { data: { publicUrl } } = supabase.storage.from('proveedores-docs').getPublicUrl(filePath);
+
+      setFormData(prev => ({
+        ...prev,
+        documentos: [...(prev.documentos || []), { nombre: file.name, url: publicUrl }]
+      }));
+    }
     
-    // Clear input
     if(fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -98,12 +106,21 @@ const CRMProveedores = () => {
   };
 
   const descargarDocumento = (doc) => {
-    const a = document.createElement('a');
-    a.href = doc.base64;
-    a.download = doc.nombre;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const docUrl = doc.url || doc.base64;
+    if (!docUrl) return;
+
+    if (docUrl.startsWith('http')) {
+      // Si es una URL de Supabase, la abrimos en otra pestaña (o descargamos si forzamos headers, pero abrir es más fácil)
+      window.open(docUrl, '_blank');
+    } else {
+      // Fallback para Base64 heredados
+      const a = document.createElement('a');
+      a.href = docUrl;
+      a.download = doc.nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   return (
@@ -496,21 +513,25 @@ const CRMProveedores = () => {
                   <div className="flex items-center gap-2 shrink-0 ml-4">
                     <button 
                       onClick={() => {
-                        try {
-                          const arr = doc.base64.split(',');
-                          const mime = arr[0].match(/:(.*?);/)[1];
-                          const bstr = atob(arr[1]);
-                          let n = bstr.length;
-                          const u8arr = new Uint8Array(n);
-                          while(n--){
-                              u8arr[n] = bstr.charCodeAt(n);
+                        if (doc.url) {
+                          window.open(doc.url, '_blank');
+                        } else {
+                          try {
+                            const arr = doc.base64.split(',');
+                            const mime = arr[0].match(/:(.*?);/)[1];
+                            const bstr = atob(arr[1]);
+                            let n = bstr.length;
+                            const u8arr = new Uint8Array(n);
+                            while(n--){
+                                u8arr[n] = bstr.charCodeAt(n);
+                            }
+                            const blob = new Blob([u8arr], {type: mime});
+                            const url = URL.createObjectURL(blob);
+                            window.open(url, '_blank');
+                          } catch (e) {
+                            console.error("Error abriendo documento", e);
+                            descargarDocumento(doc);
                           }
-                          const blob = new Blob([u8arr], {type: mime});
-                          const url = URL.createObjectURL(blob);
-                          window.open(url, '_blank');
-                        } catch (e) {
-                          console.error("Error abriendo documento", e);
-                          descargarDocumento(doc);
                         }
                       }}
                       className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"

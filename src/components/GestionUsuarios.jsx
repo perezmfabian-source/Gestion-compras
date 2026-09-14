@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/useAuthStore';
 import Dialog from './Dialog';
 import PermisosModal from './PermisosModal';
@@ -23,6 +24,31 @@ const GestionUsuarios = () => {
   const [usuarioEditando, setUsuarioEditando] = useState(null);
   const [formData, setFormData] = useState({ nombre: '', correo: '', rol: 'ANALISTA' });
   const [usuarioPermisos, setUsuarioPermisos] = useState(null);
+
+  const fileInputRef = useRef(null);
+
+  const handleProfilePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if(file.size > 2 * 1024 * 1024) {
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'La foto debe ser menor a 2MB.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+        return;
+      }
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `user_${usuarioActual.correo.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage.from('fotos-perfil').upload(fileName, file, { upsert: true });
+      if (error) {
+        console.error('Error uploading photo: ', error);
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'Fallo al subir la foto.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('fotos-perfil').getPublicUrl(fileName);
+      
+      actualizarUsuario(usuarioActual.correo, { fotoUrl: publicUrl });
+    }
+  };
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
 
   // Estados Perfil
@@ -203,16 +229,21 @@ const GestionUsuarios = () => {
             <div className="w-full md:w-80 bg-[#1E293B] border border-slate-700/50 rounded-xl p-6 shadow-lg flex flex-col items-center text-center h-fit">
               <div className="relative inline-block mb-4">
                 <div className="w-[110px] h-[110px] rounded-full border border-slate-700 bg-slate-900 flex items-center justify-center shadow-inner relative overflow-hidden">
-                  <div className="w-[100px] h-[100px] rounded-full border-2 border-rose-500 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-rose-500">{usuarioActual?.nombre?.substring(0, 2).toUpperCase() || 'U'}</span>
+                  <div className="w-[100px] h-[100px] rounded-full border-2 border-rose-500 flex items-center justify-center overflow-hidden">
+                    {usuarioActual?.fotoUrl ? (
+                      <img src={usuarioActual.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl font-bold text-rose-500">{usuarioActual?.nombre?.substring(0, 2).toUpperCase() || 'U'}</span>
+                    )}
                   </div>
                 </div>
                 <button 
-                  onClick={() => setDialogConfig({ isOpen: true, type: 'alert', title: 'Próximamente', message: 'La función para subir fotos requerirá un Bucket de Supabase Storage. Esta característica estará en la próxima versión.', onConfirm: () => setDialogConfig({ isOpen: false }) })}
+                  onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-1 right-1 bg-blue-500 hover:bg-blue-400 p-2 rounded-full text-white shadow-lg transition-colors border-2 border-[#1E293B]"
                 >
                   📷
                 </button>
+                <input type="file" ref={fileInputRef} onChange={handleProfilePhotoUpload} accept="image/*" className="hidden" />
               </div>
               <h2 className="text-lg font-bold text-white uppercase">{usuarioActual?.nombre}</h2>
               <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider">{usuarioActual?.rol}</p>

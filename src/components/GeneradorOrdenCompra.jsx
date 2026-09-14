@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { PDFDownloadLink, PDFViewer } from '@react-pdf/renderer';
+import { supabase } from '../lib/supabaseClient';
+import { PDFDownloadLink, PDFViewer, pdf } from '@react-pdf/renderer';
 import { useComprasStore } from '../store/useComprasStore';
 import { useAuthStore } from '../store/useAuthStore';
 import OrdenCompraPDF from './OrdenCompraPDF';
@@ -37,18 +38,62 @@ const GeneradorOrdenCompra = () => {
 
   const cargarOrden = useComprasStore((state) => state.cargarOrden);
 
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
       if(file.size > 2 * 1024 * 1024) {
         setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'El logo debe ser menor a 2MB.', onConfirm: () => setDialogConfig({ isOpen: false }) });
         return;
       }
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo_${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabase.storage.from('logos-empresa').upload(fileName, file, { upsert: true });
+      if (error) {
+        console.error('Error uploading logo: ', error);
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'Fallo al subir el logo.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('logos-empresa').getPublicUrl(fileName);
+      actualizarEmpresa({ logoBase64: publicUrl });
+    }
+  };
+
+  const handleEnviarCorreo = async (orden) => {
+    try {
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Enviando...', message: 'Generando PDF y enviando correo al proveedor. Por favor espera.', onConfirm: () => {} });
+      
+      const asPdf = pdf();
+      asPdf.updateContainer(<OrdenCompraPDF orden={orden} />);
+      const blob = await asPdf.toBlob();
+      
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        actualizarEmpresa({ logoBase64: ev.target.result });
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64data = reader.result.split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke('enviar-orden-compra', {
+          body: {
+            to: orden.proveedor.email,
+            subject: `Orden de Compra ${orden.consecutivo}`,
+            html: `<p>Hola <strong>${orden.proveedor.razonSocial}</strong>,</p><p>Adjunto enviamos la Orden de Compra <strong>${orden.consecutivo}</strong> emitida por nuestra empresa.</p><p>Por favor confirmar de recibido.</p><p>Gracias.</p>`,
+            attachments: [
+              {
+                filename: `Orden_${orden.consecutivo}.pdf`,
+                content: base64data
+              }
+            ]
+          }
+        });
+        
+        if (error) throw error;
+        
+        setDialogConfig({ isOpen: true, type: 'alert', title: 'Éxito', message: 'El correo fue enviado exitosamente desde el servidor.', onConfirm: () => setDialogConfig({ isOpen: false }) });
       };
-      reader.readAsDataURL(file);
+    } catch (e) {
+      console.error(e);
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Error', message: 'No se pudo enviar el correo: ' + e.message, onConfirm: () => setDialogConfig({ isOpen: false }) });
     }
   };
 
@@ -598,3 +643,4 @@ const GeneradorOrdenCompra = () => {
 };
 
 export default GeneradorOrdenCompra;
+

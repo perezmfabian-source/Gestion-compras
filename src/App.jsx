@@ -11,7 +11,7 @@ import Almacen from './components/Almacen';
 import RecepcionFacturas from './components/RecepcionFacturas';
 import { useAuthStore } from './store/useAuthStore';
 import { useComprasStore } from './store/useComprasStore';
-
+import ErrorBoundary from './components/ErrorBoundary';
 function App() {
   const usuarioActual = useAuthStore(state => state.usuarioActual);
   const modoMantenimiento = useAuthStore(state => state.modoMantenimiento);
@@ -26,13 +26,8 @@ function App() {
     useAuthStore.getState().initAuth();
     useComprasStore.getState().initStore();
 
-    // Timeout de seguridad de 3 segundos por si Supabase no responde
-    const timer = setTimeout(() => {
-      useAuthStore.setState({ isInitialized: true });
-      useComprasStore.setState({ isInitialized: true });
-    }, 3000);
-
-    return () => clearTimeout(timer);
+    // La inicialización ahora depende exclusivamente de las respuestas reales de Supabase
+    // (Eliminado el timeout de seguridad de 3 segundos)
   }, []);
 
   if (!isAuthInitialized || !isStoreInitialized) {
@@ -53,22 +48,24 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route path="ordenes" element={<GeneradorOrdenCompra />} />
-          <Route path="almacen" element={<Almacen />} />
-          <Route path="facturas" element={<RecepcionFacturas />} />
-          <Route path="proveedores" element={<CRMProveedores />} />
-          <Route path="configuracion" element={<ConfiguracionTributaria />} />
-          <Route path="cuentas-por-pagar" element={<CuentasPorPagar />} />
-          <Route path="usuarios" element={<GestionUsuarios />} />
-          
-          {/* Ruta por defecto */}
-          <Route index element={<Navigate to="/ordenes" replace />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route path="ordenes" element={<GeneradorOrdenCompra />} />
+            <Route path="almacen" element={<Almacen />} />
+            <Route path="facturas" element={<RecepcionFacturas />} />
+            <Route path="proveedores" element={<CRMProveedores />} />
+            <Route path="configuracion" element={<ConfiguracionTributaria />} />
+            <Route path="cuentas-por-pagar" element={<CuentasPorPagar />} />
+            <Route path="usuarios" element={<GestionUsuarios />} />
+            
+            {/* Ruta por defecto */}
+            <Route index element={<Navigate to="/ordenes" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
