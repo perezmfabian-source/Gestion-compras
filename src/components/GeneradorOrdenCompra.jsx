@@ -538,7 +538,7 @@ const GeneradorOrdenCompra = () => {
                             </svg>
                           </button>
 
-                          {tienePermiso('ordenes.eliminar') && (
+                          {tienePermiso('ordenes', 'borrado') && (
                             <button
                               onClick={() => {
                                 setDialogConfig({
