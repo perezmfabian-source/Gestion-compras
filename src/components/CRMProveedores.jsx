@@ -426,7 +426,7 @@ const CRMProveedores = () => {
                               <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
                                 ✏️
                               </button>
-                              {tienePermiso('proveedores.eliminar') && (
+                              {tienePermiso('proveedores', 'borrado') && (
                                 <button onClick={() => setProveedorABorrar(prov)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
                                   🗑️
                                 </button>
