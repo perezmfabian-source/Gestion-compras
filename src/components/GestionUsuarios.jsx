@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { authenticator } from '../lib/totp';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { CheckCircle, Clock } from 'lucide-react';
+import { CheckCircle, Clock, Trash2 } from 'lucide-react';
 import Dialog from './Dialog';
 import PermisosModal from './PermisosModal';
 
@@ -17,6 +17,7 @@ const GestionUsuarios = () => {
     feedbacks,
     cargarFeedbacks,
     actualizarEstadoFeedback,
+    eliminarFeedback,
     agregarUsuario,
     actualizarUsuario,
     eliminarUsuario
@@ -449,7 +450,7 @@ const GestionUsuarios = () => {
                           </p>
                           <p className="text-[10px] text-slate-400 mt-1">{new Date(fb.created_at).toLocaleString()}</p>
                         </div>
-                        <div>
+                        <div className="flex items-center gap-2">
                           {fb.estado === 'CORREGIDO' ? (
                             <span className="inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded text-[10px] font-bold uppercase">
                               <CheckCircle className="w-3 h-3" /> Corregido
@@ -462,6 +463,17 @@ const GestionUsuarios = () => {
                               <Clock className="w-3.5 h-3.5" /> Marcar Resuelto
                             </button>
                           )}
+                          <button
+                            onClick={() => {
+                              if (window.confirm('¿Estás seguro de eliminar este feedback?')) {
+                                eliminarFeedback(fb.id);
+                              }
+                            }}
+                            className="p-1.5 bg-slate-800 hover:bg-red-500 hover:text-white text-slate-400 rounded-lg transition-colors border border-slate-700"
+                            title="Eliminar observación"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                       <p className={`text-sm mt-3 p-3 rounded-lg bg-slate-900/50 ${fb.estado === 'CORREGIDO' ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
