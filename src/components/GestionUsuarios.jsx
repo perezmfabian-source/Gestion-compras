@@ -140,13 +140,24 @@ const GestionUsuarios = () => {
 
   const esAdmin = usuarioActual?.rol === 'ADMINISTRADOR';
 
-  const handleGuardarMantenimiento = () => {
+  const handleToggleEstado = () => {
     toggleMantenimiento(!modoMantenimiento, mantenimientoTexto);
     setDialogConfig({
       isOpen: true,
       type: 'alert',
       title: 'Mantenimiento',
       message: `Modo mantenimiento ${!modoMantenimiento ? 'Activado' : 'Desactivado'} exitosamente.`,
+      onConfirm: () => setDialogConfig({ isOpen: false })
+    });
+  };
+
+  const handleGuardarMensaje = () => {
+    toggleMantenimiento(modoMantenimiento, mantenimientoTexto);
+    setDialogConfig({
+      isOpen: true,
+      type: 'alert',
+      title: 'Mantenimiento',
+      message: 'Mensaje de mantenimiento actualizado exitosamente.',
       onConfirm: () => setDialogConfig({ isOpen: false })
     });
   };
@@ -402,7 +413,7 @@ const GestionUsuarios = () => {
                 <div className="w-48 shrink-0">
                   <label className="block text-xs text-slate-400 mb-1">Estado</label>
                   <button 
-                    onClick={handleGuardarMantenimiento}
+                    onClick={handleToggleEstado}
                     className={`w-full py-2.5 px-4 rounded-lg font-bold text-sm transition-colors border ${
                       modoMantenimiento 
                         ? 'bg-rose-500/20 text-rose-400 border-rose-500/50 hover:bg-rose-500/30' 
@@ -424,7 +435,7 @@ const GestionUsuarios = () => {
                 </div>
                 
                 <button 
-                  onClick={handleGuardarMantenimiento}
+                  onClick={handleGuardarMensaje}
                   className="px-6 py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-sm rounded-lg transition-colors shrink-0"
                 >
                   Guardar Mensaje
