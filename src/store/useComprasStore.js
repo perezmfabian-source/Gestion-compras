@@ -141,7 +141,7 @@ export const useComprasStore = create((set, get) => ({
           consecutivo: o.consecutivo,
           fecha: o.fecha,
           estadoPago: o.estado_pago,
-          estadoLogistico: o.estado_logistico || 'Pendiente',
+          estadoLogistico: o.raw_metadatos?.estadoLogistico || o.estado_logistico || 'Pendiente',
           proveedor: { nit: o.proveedor_nit },
           obra: { nombre: o.centro_costo_id },
           totales: { total: o.total_neto },
@@ -467,11 +467,21 @@ export const useComprasStore = create((set, get) => ({
     });
 
     try {
-      await supabase.from('ordenes_compra').upsert([{
+      if (ordenJSON.proveedor?.nit) {
+        await supabase.from('proveedores').upsert([{
+          nit: ordenJSON.proveedor.nit,
+          razon_social: ordenJSON.proveedor.razonSocial || 'PROVEEDOR DESCONOCIDO',
+          email: ordenJSON.proveedor.email || '',
+          direccion: ordenJSON.proveedor.direccion || 'N/A',
+          telefono: ordenJSON.proveedor.telefono || 'N/A',
+          forma_pago: ordenJSON.proveedor.formaPago || 'Contado'
+        }], { onConflict: 'nit' });
+      }
+
+      const { error } = await supabase.from('ordenes_compra').upsert([{
         consecutivo: ordenJSON.consecutivo,
         fecha: ordenJSON.fecha,
         estado_pago: ordenJSON.estadoPago || 'Pendiente',
-        estado_logistico: ordenJSON.estadoLogistico || 'Pendiente',
         proveedor_nit: ordenJSON.proveedor?.nit,
         centro_costo_id: ordenJSON.obra?.nombre,
         subtotal: ordenJSON.totales?.subtotal,
@@ -480,9 +490,14 @@ export const useComprasStore = create((set, get) => ({
         reteica: ordenJSON.totales?.retenciones?.reteica,
         reteiva: ordenJSON.totales?.retenciones?.reteiva,
         total_neto: ordenJSON.totales?.total,
-        raw_metadatos: { ...ordenJSON._rawMetadatos, items: ordenJSON.items }
+        raw_metadatos: { ...ordenJSON._rawMetadatos, items: ordenJSON.items, estadoLogistico: ordenJSON.estadoLogistico || 'Pendiente' }
       }], { onConflict: 'consecutivo' });
-    } catch(e) {}
+      if (error) {
+        console.error("Supabase Error en guardarOrden:", error);
+      }
+    } catch(e) {
+      console.error("Catch error en guardarOrden:", e);
+    }
   },
 
   cargarOrden: (ordenJSON) => set((state) => ({
