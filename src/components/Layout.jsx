@@ -79,7 +79,7 @@ const Layout = () => {
         {/* Branding NEXATECH */}
         <div className="p-4 border-t border-slate-800 text-center">
           <div className="flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
-            <img src="/nexatech-logo.png?v=3" alt="Nexatech Logo" className="w-32 h-auto object-contain mx-auto mb-2" />
+            <img src="/nexatech-logo.png?v=3" alt="Nexatech Logo" className="w-24 h-auto object-contain mx-auto mb-2" />
             <p className="text-slate-400 text-[10px] leading-tight mt-1">
               Producto digital desarrollado<br />
               por <span className="text-slate-300 font-bold">Nexatech S.A.S.</span>
