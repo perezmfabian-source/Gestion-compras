@@ -115,7 +115,9 @@ export const useAuthStore = create((set, get) => ({
 
   iniciarSesion: (correo, password, codigo2FA = null) => {
     const { usuarios, modoMantenimiento } = get();
-    const usuarioEncontrado = usuarios.find(u => u.correo.toLowerCase() === correo.toLowerCase() && u.password === password);
+    const c = correo.trim().toLowerCase();
+    const p = password.trim();
+    const usuarioEncontrado = usuarios.find(u => u.correo.toLowerCase() === c && u.password === p);
     
     if (!usuarioEncontrado) {
       return { exito: false, mensaje: 'Credenciales incorrectas' };
