@@ -47,6 +47,13 @@ export const useAuthStore = create((set, get) => ({
       if (data) set({ feedbacks: data });
     }
   },
+  eliminarFeedback: async (id) => {
+    const { error } = await supabase.from('feedback_pruebas').delete().eq('id', id);
+    if (!error) {
+      const { data } = await supabase.from('feedback_pruebas').select('*').order('created_at', { ascending: false });
+      if (data) set({ feedbacks: data });
+    }
+  },
 
   initAuth: async () => {
     try {
