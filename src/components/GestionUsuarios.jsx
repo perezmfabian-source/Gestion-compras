@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authenticator } from '../lib/totp';
 import { supabase } from '../lib/supabaseClient';
