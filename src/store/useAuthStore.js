@@ -26,6 +26,15 @@ export const useAuthStore = create((set, get) => ({
 
   initAuth: async () => {
     try {
+      // Cargar configuracion de mantenimiento global
+      const { data: confData } = await supabase.from('configuracion').select('*').eq('id', 'sistema').single();
+      if (confData && confData.datos) {
+        set({ 
+          modoMantenimiento: confData.datos.modoMantenimiento || false, 
+          mensajeMantenimiento: confData.datos.mensajeMantenimiento || 'El administrador está realizando actualizaciones...'
+        });
+      }
+
       const { data, error } = await supabase.from('usuarios').select('*');
       if (error) {
         console.warn('Error fetching usuarios from Supabase, using mock data:', error);
@@ -168,10 +177,13 @@ export const useAuthStore = create((set, get) => ({
 
   // --- Funciones de Administración ---
 
-  toggleMantenimiento: (estado, mensaje) => set({ 
-    modoMantenimiento: estado, 
-    mensajeMantenimiento: mensaje 
-  }),
+  toggleMantenimiento: async (estado, mensaje) => {
+    set({ modoMantenimiento: estado, mensajeMantenimiento: mensaje });
+    await supabase.from('configuracion').upsert([{ 
+      id: 'sistema', 
+      datos: { modoMantenimiento: estado, mensajeMantenimiento: mensaje } 
+    }]);
+  },
 
   agregarUsuario: async (nuevoUsuario) => {
     const idTemp = Date.now().toString();
