@@ -24,6 +24,30 @@ export const useAuthStore = create((set, get) => ({
   mensajeMantenimiento: 'El administrador está realizando actualizaciones en la plataforma para mejorar tu experiencia. Por favor, intenta ingresar más tarde.',
   isInitialized: false,
 
+  feedbacks: [],
+  cargarFeedbacks: async () => {
+    const { data } = await supabase.from('feedback_pruebas').select('*').order('created_at', { ascending: false });
+    if (data) set({ feedbacks: data });
+  },
+  enviarFeedback: async (mensaje) => {
+    const { usuarioActual } = get();
+    if (!usuarioActual) return false;
+    const { error } = await supabase.from('feedback_pruebas').insert([{
+      usuario_nombre: usuarioActual.nombre,
+      usuario_email: usuarioActual.correo,
+      mensaje,
+      estado: 'PENDIENTE'
+    }]);
+    return !error;
+  },
+  actualizarEstadoFeedback: async (id, nuevoEstado) => {
+    const { error } = await supabase.from('feedback_pruebas').update({ estado: nuevoEstado }).eq('id', id);
+    if (!error) {
+      const { data } = await supabase.from('feedback_pruebas').select('*').order('created_at', { ascending: false });
+      if (data) set({ feedbacks: data });
+    }
+  },
+
   initAuth: async () => {
     try {
       // Cargar configuracion de mantenimiento global

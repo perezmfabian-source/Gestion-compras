@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { authenticator } from '../lib/totp';
 import { supabase } from '../lib/supabaseClient';
 import { useAuthStore } from '../store/useAuthStore';
+import { CheckCircle, Clock } from 'lucide-react';
 import Dialog from './Dialog';
 import PermisosModal from './PermisosModal';
 
@@ -13,6 +14,9 @@ const GestionUsuarios = () => {
     modoMantenimiento, 
     mensajeMantenimiento,
     toggleMantenimiento,
+    feedbacks,
+    cargarFeedbacks,
+    actualizarEstadoFeedback,
     agregarUsuario,
     actualizarUsuario,
     eliminarUsuario
@@ -20,6 +24,10 @@ const GestionUsuarios = () => {
 
   const [activeTab, setActiveTab] = useState('Administración');
   const [mantenimientoTexto, setMantenimientoTexto] = useState(mensajeMantenimiento);
+
+  useEffect(() => {
+    cargarFeedbacks();
+  }, []);
   
   // Estados para Modal de Crear/Editar
   const [showModal, setShowModal] = useState(false);

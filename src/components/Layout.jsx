@@ -54,9 +54,9 @@ const Layout = () => {
         </nav>
 
         {/* Perfil del Usuario */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg overflow-hidden">
+        <div className="p-3 border-t border-slate-800 bg-slate-900/50">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white shadow-lg overflow-hidden shrink-0">
               {usuarioActual?.fotoUrl ? (
                 <img src={usuarioActual.fotoUrl} alt="Perfil" className="w-full h-full object-cover" />
               ) : (
@@ -64,8 +64,8 @@ const Layout = () => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white truncate">{usuarioActual?.nombre}</p>
-              <p className="text-[10px] text-slate-400 truncate uppercase tracking-wider">{usuarioActual?.rol}</p>
+              <p className="text-xs font-bold text-white truncate">{usuarioActual?.nombre}</p>
+              <p className="text-[9px] text-slate-400 truncate uppercase tracking-wider">{usuarioActual?.rol}</p>
             </div>
           </div>
           <button 
@@ -79,7 +79,7 @@ const Layout = () => {
         {/* Branding NEXATECH */}
         <div className="p-4 border-t border-slate-800 text-center">
           <div className="flex flex-col items-center justify-center opacity-80 hover:opacity-100 transition-opacity">
-            <img src="/nexatech-logo.png" alt="Nexatech Logo" className="h-8 object-contain mb-2" />
+            <img src="/nexatech-logo.png?v=3" alt="Nexatech Logo" className="w-32 h-auto object-contain mx-auto mb-2" />
             <p className="text-slate-400 text-[10px] leading-tight mt-1">
               Producto digital desarrollado<br />
               por <span className="text-slate-300 font-bold">Nexatech S.A.S.</span>
