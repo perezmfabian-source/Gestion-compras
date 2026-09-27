@@ -201,12 +201,18 @@ const GeneradorOrdenCompra = () => {
               </label>
               <input
                 id="proveedorId"
+                list="proveedores-list"
                 type="text"
                 value={metadatos.idProveedor}
                 onChange={(e) => actualizarMetadatos({idProveedor: e.target.value})}
-                placeholder="Ej. 891412809"
+                placeholder="Ej. 891412809 o Buscar por Nombre"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-slate-800 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
               />
+              <datalist id="proveedores-list">
+                {useComprasStore.getState().proveedores.map(p => (
+                  <option key={p.nit} value={p.nit}>{p.razonSocial}</option>
+                ))}
+              </datalist>
               {metadatos.proveedorData ? (
                 <p className="text-xs text-emerald-600 mt-1.5 font-semibold">
                   ✓ {metadatos.proveedorData.razonSocial} ({metadatos.proveedorData.perfilTributario})

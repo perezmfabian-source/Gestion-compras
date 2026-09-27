@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { useComprasStore } from '../store/useComprasStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -6,12 +7,19 @@ import { Mail, Phone, MapPin, Building2, UserCircle, UploadCloud, X, FileText, D
 import Dialog from './Dialog';
 
 const CRMProveedores = () => {
+  const navigate = useNavigate();
   const tienePermiso = useAuthStore(state => state.tienePermiso);
   const proveedores = useComprasStore(state => state.proveedores) || [];
   const configTributaria = useComprasStore(state => state.configTributaria) || { tarifasIca: [] };
   const guardarProveedor = useComprasStore(state => state.guardarProveedor);
   const eliminarProveedor = useComprasStore(state => state.eliminarProveedor);
+  const actualizarMetadatos = useComprasStore(state => state.actualizarMetadatos);
   const tarifasIca = configTributaria?.tarifasIca || [];
+
+  const enviarACompras = (prov) => {
+    actualizarMetadatos({ idProveedor: prov.nit });
+    navigate('/ordenes');
+  };
 
   const fileInputRef = useRef(null);
   const [dialogConfig, setDialogConfig] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
@@ -123,6 +131,39 @@ const CRMProveedores = () => {
     }
   };
 
+  const exportarCSV = () => {
+    if (!proveedores || proveedores.length === 0) {
+      setDialogConfig({ isOpen: true, type: 'alert', title: 'Aviso', message: 'No hay proveedores para exportar.', onConfirm: () => setDialogConfig({ isOpen: false }) });
+      return;
+    }
+    const headers = ['NIT', 'Razon Social', 'Email', 'Direccion', 'Ciudad', 'Telefono', 'Celular', 'Vendedor', 'Perfil Tributario', 'Actividad', 'Forma de Pago'];
+    const csvContent = [
+      headers.join(','),
+      ...proveedores.map(p => [
+        p.nit,
+        `"${p.razonSocial || ''}"`,
+        p.email || '',
+        `"${p.direccion || ''}"`,
+        p.ciudad || '',
+        p.telefono || '',
+        p.celular || '',
+        p.vendedor || '',
+        p.perfilTributario || '',
+        p.actividad || '',
+        p.formaPago || ''
+      ].join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'proveedores.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -134,16 +175,25 @@ const CRMProveedores = () => {
               Gestión maestra de entidades para asignación de perfiles tributarios y ReteICA.
             </p>
           </div>
-          <button 
-            onClick={() => {
-              setFormData({ razonSocial: '', nit: '', email: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
-              setModoEdicion(false);
-              setMostrarForm(true);
-            }}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-emerald-900/50 transition-all flex items-center gap-2"
-          >
-            <span className="text-xl">+</span> Nuevo Proveedor
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={exportarCSV}
+              className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 px-4 rounded-xl shadow-lg transition-all flex items-center gap-2"
+              title="Exportar a CSV"
+            >
+              <Download className="w-5 h-5" /> Exportar
+            </button>
+            <button 
+              onClick={() => {
+                setFormData({ razonSocial: '', nit: '', email: '', direccion: '', ciudad: '', telefono: '', celular: '', vendedor: '', perfilTributario: 'Regimen Comun', actividad: '', formaPago: 'Contado', documentos: [] });
+                setModoEdicion(false);
+                setMostrarForm(true);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-6 rounded-xl shadow-lg shadow-emerald-900/50 transition-all flex items-center gap-2"
+            >
+              <span className="text-xl">+</span> Nuevo Proveedor
+            </button>
+          </div>
         </header>
 
         <div className="flex flex-col gap-8">
@@ -421,17 +471,24 @@ const CRMProveedores = () => {
                         <div className="text-[10px] uppercase font-bold text-slate-500">{prov.formaPago || 'Contado'}</div>
                       </td>
                       <td className="py-4 px-6 text-center">
-                        <div className="flex flex-col gap-2 items-center justify-center">
-                            <div className="flex gap-2 justify-center">
-                              <button onClick={() => cargarParaEdicion(prov)} className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors" title="Editar">
-                                ✏️
+                          <div className="flex flex-col gap-2 items-center justify-center">
+                              <button 
+                                onClick={() => enviarACompras(prov)} 
+                                className="w-full text-xs font-bold px-2 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors flex items-center justify-center gap-1"
+                                title="Crear Orden con este proveedor"
+                              >
+                                🛒 Crear Orden
                               </button>
-                              {tienePermiso('proveedores', 'borrado') && (
-                                <button onClick={() => setProveedorABorrar(prov)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors" title="Eliminar">
-                                  🗑️
+                              <div className="flex gap-2 justify-center w-full">
+                                <button onClick={() => cargarParaEdicion(prov)} className="flex-1 p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded transition-colors flex items-center justify-center" title="Editar">
+                                  ✏️
                                 </button>
-                              )}
-                            </div>
+                                {tienePermiso('proveedores', 'borrado') && (
+                                  <button onClick={() => setProveedorABorrar(prov)} className="flex-1 p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded transition-colors flex items-center justify-center" title="Eliminar">
+                                    🗑️
+                                  </button>
+                                )}
+                              </div>
                           {prov.documentos && prov.documentos.length > 0 && (
                             <button 
                               onClick={() => setModalDocs(prov)}
